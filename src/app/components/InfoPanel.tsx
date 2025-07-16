@@ -3,10 +3,22 @@ import { Clock, Check, Globe, Shield, Zap } from 'lucide-react';
 import { Service } from '../types';
 
 interface InfoPanelProps {
-  selectedService: Service | null;
+  selectedServices: Service[];
 }
 
-const InfoPanel: React.FC<InfoPanelProps> = ({ selectedService }) => {
+const InfoPanel: React.FC<InfoPanelProps> = ({ selectedServices }) => {
+  const getTotalDuration = () => {
+    return selectedServices.reduce((total, service) => total + parseInt(service.durationMin), 0);
+  };
+
+  const getTotalPrice = () => {
+    return selectedServices.reduce((total, service) => total + parseFloat(service.price || '0'), 0);
+  };
+
+  const formatPrice = (price: number) => {
+    return price === 0 ? 'Free' : `$${price}`;
+  };
+
   return (
     <div className="space-y-8">
       <div>
@@ -22,22 +34,54 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ selectedService }) => {
       <div className="bg-white rounded-2xl p-6 shadow-lg">
         <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
           <Clock className="w-5 h-5 mr-2 text-indigo-600" />
-          {selectedService ? selectedService.name : 'Multiple Services Available'}
+          {selectedServices.length > 0 
+            ? `${selectedServices.length} Service${selectedServices.length !== 1 ? 's' : ''} Selected`
+            : 'Multiple Services Available'
+          }
         </h3>
-        <ul className="space-y-3 text-gray-600">
-          <li className="flex items-start">
-            <Check className="w-5 h-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
-            Custom website designs that don&apos;t just look good but also convert visitors into customers
-          </li>
-          <li className="flex items-start">
-            <Check className="w-5 h-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
-            Website hosting & maintenance services to keep your site running smoothly
-          </li>
-          <li className="flex items-start">
-            <Check className="w-5 h-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
-            Automated booking system to streamline your scheduling process
-          </li>
-        </ul>
+        
+        {selectedServices.length > 0 ? (
+          <div className="space-y-4">
+            <div className="space-y-2">
+              {selectedServices.map((service, index) => (
+                <div key={service.id} className="flex justify-between items-center p-3 bg-indigo-50 rounded-lg">
+                  <div>
+                    <p className="font-medium text-indigo-900">{service.name}</p>
+                    <p className="text-sm text-indigo-600">{service.durationMin} minutes</p>
+                  </div>
+                  <p className="font-semibold text-indigo-700">
+                    {parseFloat(service.price || '0') === 0 ? 'Free' : `$${service.price}`}
+                  </p>
+                </div>
+              ))}
+            </div>
+            <div className="border-t border-indigo-200 pt-3 flex justify-between items-center">
+              <div>
+                <p className="text-sm text-indigo-600">Total Duration</p>
+                <p className="font-semibold text-indigo-900">{getTotalDuration()} minutes</p>
+              </div>
+              <div className="text-right">
+                <p className="text-sm text-indigo-600">Total Cost</p>
+                <p className="font-bold text-indigo-900 text-lg">{formatPrice(getTotalPrice())}</p>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <ul className="space-y-3 text-gray-600">
+            <li className="flex items-start">
+              <Check className="w-5 h-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
+              Custom website designs that don&apos;t just look good but also convert visitors into customers
+            </li>
+            <li className="flex items-start">
+              <Check className="w-5 h-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
+              Website hosting & maintenance services to keep your site running smoothly
+            </li>
+            <li className="flex items-start">
+              <Check className="w-5 h-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
+              Automated booking system to streamline your scheduling process
+            </li>
+          </ul>
+        )}
       </div>
 
       <div className="grid grid-cols-3 gap-4">

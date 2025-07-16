@@ -1,5 +1,5 @@
 'use client';
-import React, { useState } from 'react';
+import React from 'react';
 import { useSchedulingData } from './hooks/useSchedulingData';
 import { useBookingState } from './hooks/useBookingState';
 import InfoPanel from './components/InfoPanel';
@@ -8,9 +8,6 @@ import ConfirmationPage from './components/ConfirmationPage';
 import { CalendarDay } from './types';
 
 const SchedulingApp = () => {
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
-
   const {
     services,
     serviceLoading,
@@ -29,8 +26,8 @@ const SchedulingApp = () => {
     setCurrentMonth,
     bookingStep,
     setBookingStep,
-    selectedService,
-    setSelectedService,
+    selectedServices,
+    toggleService,
     formData,
     setFormData,
     formErrors,
@@ -42,54 +39,15 @@ const SchedulingApp = () => {
     setSelectedDate(day.date);
   };
 
-  const handleSubmit = async () => {
-    if (!selectedService || !selectedDate || !selectedTime) {
-      setSubmitError('Missing required booking information');
-      return;
-    }
-
-    setIsSubmitting(true);
-    setSubmitError(null);
-
-    try {
-      const response = await fetch('/api/appointments', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          serviceId: selectedService.id,
-          date: selectedDate.toISOString().split('T')[0], // YYYY-MM-DD format
-          time: selectedTime,
-          clientName: formData.name,
-          clientEmail: formData.email,
-          clientPhone: '', // You might want to add a phone field to your form
-          notes: formData.message
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to create appointment');
-      }
-
-      const appointment = await response.json();
-      console.log('Appointment created:', appointment);
-      
-      setBookingStep('confirmation');
-    } catch (error) {
-      console.error('Error creating appointment:', error);
-      setSubmitError(error instanceof Error ? error.message : 'Failed to create appointment');
-    } finally {
-      setIsSubmitting(false);
-    }
+  const handleSubmit = () => {
+    setBookingStep('confirmation');
   };
 
   // Show confirmation page with different layout
   if (bookingStep === 'confirmation') {
     return (
       <ConfirmationPage
-        selectedService={selectedService}
+        selectedServices={selectedServices}
         selectedDate={selectedDate}
         selectedTime={selectedTime}
         formData={formData}
@@ -115,38 +73,29 @@ const SchedulingApp = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-12">
         <div className="grid lg:grid-cols-2 gap-12 items-start">
           {/* Left Column - Info */}
-          <InfoPanel selectedService={selectedService} />
+          <InfoPanel selectedServices={selectedServices} />
 
           {/* Right Column - Booking Interface */}
-          <div>
-            {submitError && (
-              <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-                <p className="text-red-600 text-sm">{submitError}</p>
-              </div>
-            )}
-            
-            <BookingInterface
-              bookingStep={bookingStep}
-              services={services}
-              selectedService={selectedService}
-              selectedDate={selectedDate}
-              selectedTime={selectedTime}
-              currentMonth={currentMonth}
-              availability={availability}
-              settings={settings}
-              formData={formData}
-              formErrors={formErrors}
-              onServiceSelect={setSelectedService}
-              onDateSelect={handleDateSelect}
-              onTimeSelect={setSelectedTime}
-              onMonthChange={setCurrentMonth}
-              onFormDataChange={setFormData}
-              onFormErrorsChange={setFormErrors}
-              onSubmit={handleSubmit}
-              onStepChange={setBookingStep}
-              isSubmitting={isSubmitting}
-            />
-          </div>
+          <BookingInterface
+            bookingStep={bookingStep}
+            services={services}
+            selectedServices={selectedServices}
+            selectedDate={selectedDate}
+            selectedTime={selectedTime}
+            currentMonth={currentMonth}
+            availability={availability}
+            settings={settings}
+            formData={formData}
+            formErrors={formErrors}
+            onServiceToggle={toggleService}
+            onDateSelect={handleDateSelect}
+            onTimeSelect={setSelectedTime}
+            onMonthChange={setCurrentMonth}
+            onFormDataChange={setFormData}
+            onFormErrorsChange={setFormErrors}
+            onSubmit={handleSubmit}
+            onStepChange={setBookingStep}
+          />
         </div>
       </div>
     </div>

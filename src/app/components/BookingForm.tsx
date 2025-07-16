@@ -1,9 +1,9 @@
 import React from 'react';
-import { ArrowRight, Loader2 } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { Service, BookingFormData, FormErrors } from '../types';
 
 interface BookingFormProps {
-  selectedService: Service | null;
+  selectedServices: Service[];
   selectedDate: Date | null;
   selectedTime: string | null;
   formData: BookingFormData;
@@ -12,11 +12,10 @@ interface BookingFormProps {
   onFormErrorsChange: (errors: FormErrors) => void;
   onSubmit: () => void;
   onBack: () => void;
-  isSubmitting?: boolean;
 }
 
 const BookingForm: React.FC<BookingFormProps> = ({
-  selectedService,
+  selectedServices,
   selectedDate,
   selectedTime,
   formData,
@@ -24,8 +23,7 @@ const BookingForm: React.FC<BookingFormProps> = ({
   onFormDataChange,
   onFormErrorsChange,
   onSubmit,
-  onBack,
-  isSubmitting = false
+  onBack
 }) => {
   const formatDate = (date: Date | null) => {
     if (!date) return '';
@@ -35,6 +33,18 @@ const BookingForm: React.FC<BookingFormProps> = ({
       month: 'long',
       day: 'numeric'
     });
+  };
+
+  const getTotalDuration = () => {
+    return selectedServices.reduce((total, service) => total + parseInt(service.durationMin), 0);
+  };
+
+  const getTotalPrice = () => {
+    return selectedServices.reduce((total, service) => total + parseFloat(service.price || '0'), 0);
+  };
+
+  const formatPrice = (price: number) => {
+    return price === 0 ? 'Free' : `${price}`;
   };
 
   const validateEmail = (email: string): boolean => {
@@ -63,7 +73,7 @@ const BookingForm: React.FC<BookingFormProps> = ({
   };
 
   const handleSubmit = () => {
-    if (validateForm() && !isSubmitting) {
+    if (validateForm()) {
       onSubmit();
     }
   };
@@ -81,29 +91,42 @@ const BookingForm: React.FC<BookingFormProps> = ({
     <div>
       <button
         onClick={onBack}
-        disabled={isSubmitting}
-        className={`flex items-center mb-6 transition-colors ${
-          isSubmitting 
-            ? 'text-gray-400 cursor-not-allowed' 
-            : 'text-indigo-600 hover:text-indigo-800'
-        }`}
+        className="flex items-center text-indigo-600 hover:text-indigo-800 mb-6 transition-colors"
       >
         ← Back to time selection
       </button>
       
       <h2 className="text-2xl font-bold text-gray-900 mb-6">Complete Your Booking</h2>
       
-      <div className="bg-gray-50 rounded-lg p-4 mb-6">
-        <div className="flex justify-between items-start mb-2">
+      {/* Booking Summary */}
+      <div className="bg-gray-50 rounded-lg p-6 mb-6">
+        <div className="flex justify-between items-start mb-4">
           <div>
-            <p className="font-semibold text-gray-900">{selectedService?.name}</p>
-            <p className="text-sm text-gray-600">{formatDate(selectedDate)} at {selectedTime}</p>
+            <p className="font-semibold text-gray-900 mb-2">
+              {selectedServices.length} Service{selectedServices.length !== 1 ? 's' : ''} Booked
+            </p>
+            <p className="text-sm text-gray-600 mb-3">{formatDate(selectedDate)} at {selectedTime}</p>
+            
+            {/* Service List */}
+            <div className="space-y-2">
+              {selectedServices.map((service, index) => (
+                <div key={service.id} className="flex justify-between items-center text-sm bg-white rounded px-3 py-2">
+                  <span className="text-gray-800">{index + 1}. {service.name}</span>
+                  <div className="text-right">
+                    <span className="text-gray-600">{service.durationMin} min</span>
+                    {parseFloat(service.price || '0') > 0 && (
+                      <span className="ml-2 text-indigo-600">${service.price}</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
           <div className="text-right">
-            <p className="font-semibold text-gray-900">
-              {Number(selectedService?.price) === 0 ? 'Free' : selectedService?.price}
+            <p className="font-semibold text-gray-900 text-lg">
+              {formatPrice(getTotalPrice())}
             </p>
-            <p className="text-sm text-gray-600">{selectedService?.durationMin} min</p>
+            <p className="text-sm text-gray-600">{getTotalDuration()} min total</p>
           </div>
         </div>
       </div>
@@ -117,10 +140,7 @@ const BookingForm: React.FC<BookingFormProps> = ({
             type="text"
             value={formData.name}
             onChange={(e) => handleInputChange('name', e.target.value)}
-            disabled={isSubmitting}
             className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-[#23508e] ${
-              isSubmitting ? 'bg-gray-100 cursor-not-allowed' : ''
-            } ${
               formErrors.name 
                 ? 'border-red-500 focus:border-red-500' 
                 : 'border-gray-300 focus:border-indigo-500'
@@ -140,10 +160,7 @@ const BookingForm: React.FC<BookingFormProps> = ({
             type="email"
             value={formData.email}
             onChange={(e) => handleInputChange('email', e.target.value)}
-            disabled={isSubmitting}
             className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-[#23508e] ${
-              isSubmitting ? 'bg-gray-100 cursor-not-allowed' : ''
-            } ${
               formErrors.email 
                 ? 'border-red-500 focus:border-red-500' 
                 : 'border-gray-300 focus:border-indigo-500'
@@ -163,34 +180,17 @@ const BookingForm: React.FC<BookingFormProps> = ({
             value={formData.message}
             onChange={(e) => handleInputChange('message', e.target.value)}
             rows={4}
-            disabled={isSubmitting}
-            className={`text-[#23508e] w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${
-              isSubmitting ? 'bg-gray-100 cursor-not-allowed' : ''
-            }`}
+            className="text-[#23508e] w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             placeholder="Tell me about your project or what you'd like to discuss..."
           />
         </div>
         
         <button
           onClick={handleSubmit}
-          disabled={isSubmitting}
-          className={`w-full py-3 rounded-lg font-semibold transition-colors flex items-center justify-center space-x-2 ${
-            isSubmitting 
-              ? 'bg-gray-400 text-gray-600 cursor-not-allowed' 
-              : 'bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer'
-          }`}
+          className="cursor-pointer w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 transition-colors flex items-center justify-center space-x-2"
         >
-          {isSubmitting ? (
-            <>
-              <Loader2 className="w-4 h-4 animate-spin" />
-              <span>Creating Booking...</span>
-            </>
-          ) : (
-            <>
-              <span>Confirm Booking</span>
-              <ArrowRight className="w-4 h-4" />
-            </>
-          )}
+          <span>Confirm Booking</span>
+          <ArrowRight className="w-4 h-4" />
         </button>
       </div>
     </div>
