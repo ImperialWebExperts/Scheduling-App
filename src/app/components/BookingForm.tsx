@@ -111,9 +111,9 @@ const BookingForm: React.FC<BookingFormProps> = ({
             <div className="space-y-2">
               {selectedServices.map((service, index) => (
                 <div key={service.id} className="flex justify-between items-center text-sm bg-white rounded px-3 py-2">
-                  <span className="text-gray-800">{index + 1}. {service.name}</span>
+                  <span className="text-blue-800">{index + 1}. {service.name}</span>
                   <div className="text-right">
-                    <span className="text-gray-600">{service.durationMin} min</span>
+                    <span className="text-blue-600">{service.durationMin} min</span>
                     {parseFloat(service.price || '0') > 0 && (
                       <span className="ml-2 text-indigo-600">${service.price}</span>
                     )}

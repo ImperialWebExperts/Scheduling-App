@@ -43,7 +43,7 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ selectedServices }) => {
         {selectedServices.length > 0 ? (
           <div className="space-y-4">
             <div className="space-y-2">
-              {selectedServices.map((service, index) => (
+              {selectedServices.map((service) => (
                 <div key={service.id} className="flex justify-between items-center p-3 bg-indigo-50 rounded-lg">
                   <div>
                     <p className="font-medium text-indigo-900">{service.name}</p>

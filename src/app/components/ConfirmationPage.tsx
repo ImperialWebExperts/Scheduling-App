@@ -49,7 +49,7 @@ const ConfirmationPage: React.FC<ConfirmationPageProps> = ({
           <h2 className="text-3xl font-bold text-gray-900 mb-4">Booking Confirmed!</h2>
           <p className="text-gray-600 mb-6">Your meeting has been scheduled successfully.</p>
           
-          <div className="bg-gray-50 rounded-lg p-6 mb-6 text-left">
+          <div className="bg-gray-50 text-indigo-500 rounded-lg p-6 mb-6 text-left">
             <h3 className="font-semibold text-gray-900 mb-4 text-center">Meeting Details</h3>
             <div className="space-y-3">
               <div className="flex justify-between">
