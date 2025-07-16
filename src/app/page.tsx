@@ -1,587 +1,100 @@
 'use client';
-import React, { useState, useEffect } from 'react';
-import generateTimeSlots from '@/app/lib/generateTimeSlots';
-import { Clock, Check, ArrowRight, Globe, Shield, Zap } from 'lucide-react';
+import React from 'react';
+import { useSchedulingData } from './hooks/useSchedulingData';
+import { useBookingState } from './hooks/useBookingState';
+import InfoPanel from './components/InfoPanel';
+import BookingInterface from './components/BookingInterface';
+import ConfirmationPage from './components/ConfirmationPage';
+import { CalendarDay } from './types';
 
 const SchedulingApp = () => {
-  const [services, setServices] = useState<Service[]>([]);
-  const [serviceLoading, setServiceLoading] = useState(true);
-  const [settings, setSettings] = useState<Setting | undefined>();
-  const [settingsLoading, setSettingsLoading] = useState(true);
-  const [availability, setAvailability] = useState<Availability[]>([]);
-  const [availabilityLoading, setAvailabilityLoading] = useState(true);
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [selectedTime, setSelectedTime] = useState<string | null>(null);
-  const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [bookingStep, setBookingStep] = useState('services'); // 'services', 'calendar', 'times', 'form', 'confirmation'
-  const [selectedService, setSelectedService] = useState<Service | null>(null);
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    message: ''
-  });
-  const [formErrors, setFormErrors] = useState({
-    name: '',
-    email: ''
-  });
+  const {
+    services,
+    serviceLoading,
+    settings,
+    settingsLoading,
+    availability,
+    availabilityLoading,
+  } = useSchedulingData();
 
-  interface Service {
-    id: string;
-    name: string;
-    description: string;    
-    durationMin: string;
-    price: string;
-    businessId: string;
-  }
-  interface Setting {
-    id: string;
-    bufferMinutes: number;
-    maxAdvanceDays: number;
-    businessId: string;
-  }  
-  interface Availability {
-    id: string;
-    dayOfWeek: number;
-    startTime: string;
-    endTime: string;
-    businessId: string;
-  }  
-
-  useEffect(() => {
-    const fetchServices = async () => {
-      try {
-        const res = await fetch('/api/services');
-        const data = await res.json();
-        setServices(data);
-      } catch (error) {
-        console.error('Failed to load services:', error);
-      } finally {
-        setServiceLoading(false);
-      }
-    };
-    const fetchSettings = async () => {
-      try {
-        const res = await fetch('/api/settings');
-        const data = await res.json();
-        setSettings(data);
-      } catch (error) {
-        console.error('Failed to load settings:', error);
-      } finally {
-        setSettingsLoading(false);
-      }
-    };
-    const fetchAvailability = async () => {
-      try {
-        const res = await fetch('/api/availability');
-        const data = await res.json();
-        setAvailability(data);
-      } catch (error) {
-        console.error('Failed to load availability:', error);
-      } finally {
-        setAvailabilityLoading(false);
-      }
-    };    
-    fetchServices();
-    fetchSettings();
-    fetchAvailability();
-  }, []);
-
-  interface CalendarDay {
-    date: Date;
-    isCurrentMonth: boolean;
-    isToday: boolean;
-    isPast: boolean;
-    isBeyondLimit: boolean;
-    dayNumber: number;
-  }
-
-  const handleServiceSelect = (service: Service): void => {
-    setSelectedService(service);
-    setBookingStep('calendar');
-  };
-
-  // const availableTimes = [
-  //   '08:30 AM', '09:00 AM', '09:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM',
-  //   '02:00 PM', '02:30 PM', '03:00 PM', '03:30 PM', '04:00 PM', '04:30 PM', '05:00 PM'
-  // ];
-
-  // Email validation function
-  
-  const validateEmail = (email: string): boolean => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  };
-
-  // Form validation function
-  const validateForm = (): boolean => {
-    const errors = {
-      name: '',
-      email: ''
-    };
-
-    // Check if name is provided
-    if (!formData.name.trim()) {
-      errors.name = 'Name is required';
-    }
-
-    // Check if email is provided and valid
-    if (!formData.email.trim()) {
-      errors.email = 'Email is required';
-    } else if (!validateEmail(formData.email)) {
-      errors.email = 'Please enter a valid email address';
-    }
-
-    setFormErrors(errors);
-    return !errors.name && !errors.email;
-  };
-
-  // Calculate the maximum date (6 months from today)
-  const getMaxDate = () => {
-    const today = new Date();
-    const maxDate = new Date(today);
-    maxDate.setMonth(maxDate.getMonth() + (settings?.maxAdvanceDays || 3));
-    return maxDate;
-  };
-
-  // Check if a month is beyond the 6-month limit
-  const isMonthBeyondLimit = (month: Date) => {
-    const maxDate = getMaxDate();
-    return month > maxDate;
-  };
-
-  // Generate calendar days
-const generateCalendar = () => {
-  const year = currentMonth.getFullYear();
-  const month = currentMonth.getMonth();
-  const firstDay = new Date(year, month, 1);
-  const startDate = new Date(firstDay);
-  startDate.setDate(startDate.getDate() - firstDay.getDay());
-
-  const days = [];
-  const currentDate = new Date(startDate);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const maxDate = getMaxDate();
-
-
-  const closedDayNumbers = availability
-    .filter(a => a.startTime === 'Closed') // or however you're storing it
-    .map(a => a.dayOfWeek); // gives you [0, 6] for example
-
-  for (let i = 0; i < 42; i++) {
-    const isClosed = closedDayNumbers.includes(currentDate.getDay());
-    const isCurrentMonth = currentDate.getMonth() == month;
-    const isToday = currentDate.toDateString() == today.toDateString();
-    const isPast = currentDate.getTime() < today.getTime();
-    const isBeyondLimit = currentDate > maxDate;
-
-    days.push({
-      date: new Date(currentDate),
-      isCurrentMonth,
-      isToday,
-      isPast,
-      isBeyondLimit,
-      isClosed,
-      dayNumber: currentDate.getDate()
-    });
-
-    currentDate.setDate(currentDate.getDate() + 1);
-  }
-
-  return days;
-};
-
+  const {
+    selectedDate,
+    setSelectedDate,
+    selectedTime,
+    setSelectedTime,
+    currentMonth,
+    setCurrentMonth,
+    bookingStep,
+    setBookingStep,
+    selectedService,
+    setSelectedService,
+    formData,
+    setFormData,
+    formErrors,
+    setFormErrors,
+    resetBooking,
+  } = useBookingState();
 
   const handleDateSelect = (day: CalendarDay) => {
-    if (day.isPast || !day.isCurrentMonth || day.isBeyondLimit) return;
     setSelectedDate(day.date);
-    setBookingStep('times');
-  };
-
-  const handleTimeSelect = (time: string) => {
-    setSelectedTime(time);
-    setBookingStep('form');
   };
 
   const handleSubmit = () => {
-    if (validateForm()) {
-      setBookingStep('confirmation');
-    }
+    setBookingStep('confirmation');
   };
 
-  const formatDate = (day: CalendarDay | Date | null) => {
-    if (!day) return '';
-    const dateObj = (day instanceof Date) ? day : day.date;
-    return dateObj.toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  };
-
-  const monthNames = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
-  ];
-
-  const days = generateCalendar();
-
-  // Navigation handlers with 6-month limit
-  const canNavigateNext = () => {
-    const nextMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1);
-    return !isMonthBeyondLimit(nextMonth);
-  };
-
-  const canNavigatePrev = () => {
-    const today = new Date();
-    const prevMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1);
-    return prevMonth.getMonth() >= today.getMonth() && prevMonth.getFullYear() >= today.getFullYear();
-  };
-
-  if (bookingStep == 'confirmation') {
+  // Show confirmation page with different layout
+  if (bookingStep === 'confirmation') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50">
-        <div className="max-w-2xl mx-auto px-4 py-20">
-          <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-              <Check className="w-8 h-8 text-green-600" />
-            </div>
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Booking Confirmed!</h2>
-            <p className="text-gray-600 mb-6">Your meeting has been scheduled successfully.</p>
-            
-            <div className="bg-gray-50 rounded-lg p-6 mb-6">
-              <h3 className="font-semibold text-gray-900 mb-2">Meeting Details</h3>
-              <div className="space-y-2 text-sm text-gray-600">
-                <p><strong>Date:</strong> {formatDate(selectedDate)}</p>
-                <p><strong>Time:</strong> {selectedTime}</p>
-                <p><strong>Duration:</strong> 30 minutes</p>
-                <p><strong>Attendee:</strong> {formData.name}</p>
-              </div>
-            </div>
-            
-            <button 
-              onClick={() => {
-                setBookingStep('services');
-                setSelectedService(null);
-                setSelectedDate(null);
-                setSelectedTime(null);
-                setFormData({name: '', email: '', message: ''});
-                setFormErrors({name: '', email: ''});
-              }}
-              className="bg-indigo-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-indigo-700 transition-colors"
-            >
-              Schedule Another Meeting
-            </button>
-          </div>
+      <ConfirmationPage
+        selectedDate={selectedDate}
+        selectedTime={selectedTime}
+        formData={formData}
+        onReset={resetBooking}
+      />
+    );
+  }
+
+  // Show loading states
+  if (serviceLoading || settingsLoading || availabilityLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading scheduling data...</p>
         </div>
       </div>
     );
   }
-  if (serviceLoading) return <p>Loading services...</p>;
-  if (settingsLoading) return <p>Loading settings...</p>;
-  if (availabilityLoading) return <p>Loading availability...</p>;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-12">
         <div className="grid lg:grid-cols-2 gap-12 items-start">
           {/* Left Column - Info */}
-          <div className="space-y-8">
-            <div>
-              <h1 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-6">
-                Book a meeting with 
-                <span className="text-indigo-600"> Imperial Web Experts</span>
-              </h1>
-              <p className="text-xl text-gray-600 mb-8">
-                Web Development & Digital Business Solutions. Let&apos;s discuss your project and how we can help bring your vision to life.
-              </p>
-            </div>
-
-            <div className="bg-white rounded-2xl p-6 shadow-lg">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                <Clock className="w-5 h-5 mr-2 text-indigo-600" />
-                {selectedService ? selectedService.name : 'Multiple Services Available'}
-              </h3>
-              <ul className="space-y-3 text-gray-600">
-                  <li className="flex items-start">
-                    <Check className="w-5 h-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
-                    Custom website designs that don&apos;t just look good but also convert visitors into customers
-                  </li>
-                  <li className="flex items-start">
-                    <Check className="w-5 h-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
-                    Website hosting & maintenance services to keep your site running smoothly
-                  </li>
-                  <li className="flex items-start">
-                    <Check className="w-5 h-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
-                    Automated booking system to streamline your scheduling process
-                  </li>
-              </ul>
-            </div>
-
-            <div className="grid grid-cols-3 gap-4">
-              <div className="bg-white rounded-xl p-4 shadow-sm text-center">
-                <Globe className="w-6 h-6 text-indigo-600 mx-auto mb-2" />
-                <p className="text-sm text-gray-600">Clear</p>
-              </div>
-              <div className="bg-white rounded-xl p-4 shadow-sm text-center">
-                <Shield className="w-6 h-6 text-indigo-600 mx-auto mb-2" />
-                <p className="text-sm text-gray-600">Secure</p>
-              </div>
-              <div className="bg-white rounded-xl p-4 shadow-sm text-center">
-                <Zap className="w-6 h-6 text-indigo-600 mx-auto mb-2" />
-                <p className="text-sm text-gray-600">Instant</p>
-              </div>
-            </div>
-          </div>
+          <InfoPanel selectedService={selectedService} />
 
           {/* Right Column - Booking Interface */}
-          <div className="bg-white rounded-2xl shadow-2xl p-8">
-            {bookingStep == 'services' && (
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">Choose a Service</h2>
-                <div className="space-y-4">
-                  {services.map((service) => (
-                    <div
-                      key={service.id}
-                      onClick={() => handleServiceSelect(service)}
-                      className="border border-gray-200 rounded-xl p-6 hover:border-indigo-300 hover:shadow-md transition-all duration-200 cursor-pointer group"
-                    >
-                      <div className="flex justify-between items-start mb-3">
-                        <h3 className="text-xl font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors">
-                          {service.name}
-                        </h3>
-                        <div className="text-right">
-                          <div className="text-lg font-bold text-indigo-600">{Number(service?.price) == 0 ? 'Free' : service?.price}</div>
-                          <div className="text-sm text-gray-500">Duration: {service.durationMin} min</div>
-                        </div>
-                      </div>
-                      <p className="text-gray-600 mb-4">{service.description}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {bookingStep == 'calendar' && (
-              <div>
-                <button
-                  onClick={() => setBookingStep('services')}
-                  className="flex items-center text-indigo-600 hover:text-indigo-800 mb-6 transition-colors"
-                >
-                  ← Back to services
-                </button>
-                
-                <div className="mb-6">
-                  <h2 className="text-2xl font-bold text-gray-900">Select a Date</h2>
-                  <p className="mb-2 text-[#23508e]">Plan ahead—appointments are available up to {settings?.maxAdvanceDays || 3} months in advance!</p>
-                  <div className="bg-indigo-50 rounded-lg p-3 flex items-center justify-between">
-                    <div>
-                      <p className="font-semibold text-indigo-900">{selectedService?.name}</p>
-                      <p className="text-sm text-indigo-600">{selectedService?.durationMin} min • {Number(selectedService?.price) == 0 ? 'Free' : selectedService?.price}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center space-x-2">
-                    <button
-                      onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1))}
-                      disabled={!canNavigatePrev()}
-                      className={`p-2 rounded-lg transition-colors ${
-                        canNavigatePrev() 
-                          ? 'hover:bg-gray-100 text-gray-700' 
-                          : 'text-gray-300 cursor-not-allowed'
-                      }`}
-                    >
-                      ←
-                    </button>
-                    <span className="text-lg font-semibold text-gray-900 min-w-[140px] text-center">
-                      {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
-                    </span>
-                    <button
-                      onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1))}
-                      disabled={!canNavigateNext()}
-                      className={`p-2 rounded-lg transition-colors ${
-                        canNavigateNext() 
-                          ? 'hover:bg-gray-100 text-gray-700' 
-                          : 'text-gray-300 cursor-not-allowed'
-                      }`}
-                    >
-                      →
-                    </button>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-7 gap-1 mb-4">
-                  {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                    <div key={day} className="text-center text-sm font-medium text-gray-500 py-2">
-                      {day}
-                    </div>
-                  ))}
-                </div>
-                <div className="grid grid-cols-7 gap-1">
-                  {days.map((day, index) => (
-                    <button
-                      key={index}
-                      onClick={() => handleDateSelect(day)}
-                      disabled={day.isPast || !day.isCurrentMonth || day.isBeyondLimit || day.isClosed}
-                      className={`
-                        aspect-square p-2 text-sm rounded-lg transition-all duration-200
-                        ${day.isClosed ? 'bg-red-50 text-red-300 cursor-not-allowed' : ''}
-                        ${day.isToday ? 'bg-indigo-600 text-white hover:bg-indigo-700' : ''}
-                        ${selectedDate?.toDateString() === day.date.toDateString() ? 'bg-indigo-100 text-indigo-600' : ''}
-                        ${!day.isCurrentMonth || day.isPast || day.isClosed || day.isBeyondLimit ? 'text-gray-300 cursor-not-allowed' : 'text-gray-900 hover:bg-indigo-50 hover:text-indigo-600'}
-                        ${day.isBeyondLimit ? 'bg-black-50 text-gray-300 opacity-50 cursor-not-allowed' : ''}
-                      `}
-                    >
-                      {day.dayNumber}
-                    </button>
-                  ))}
-                </div>
-                {isMonthBeyondLimit(currentMonth) && (
-                  <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                    <p className="text-sm text-amber-800">
-                      📅 Appointments are only available up to 6 months in advance. Please select an earlier date.
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {bookingStep == 'times' && (
-              <div>
-                <button
-                  onClick={() => setBookingStep('calendar')}
-                  className="flex items-center text-indigo-600 hover:text-indigo-800 mb-6 transition-colors"
-                >
-                  ← Back to calendar
-                </button>
-                
-                <div className="mb-6">
-                  <h2 className="text-2xl font-bold text-gray-900 mb-2">Select a Time</h2>
-                  <div className="bg-indigo-50 rounded-lg p-3 mb-4">
-                    <p className="font-semibold text-indigo-900">{selectedService?.name}</p>
-                    <p className="text-sm text-indigo-600">{formatDate(selectedDate)} • {selectedService?.durationMin} min • {Number(selectedService?.price) == 0 ? 'Free' : selectedService?.price}</p>
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-3">
-                  {!selectedDate ? null : (
-                    // 0‑6 for Sun‑Sat
-                    availability
-                      .filter(a => a.dayOfWeek === selectedDate.getDay())
-                      .flatMap(({ startTime, endTime  }) => generateTimeSlots(startTime, endTime))
-                      .map(time => (
-                        <button
-                          key={time}
-                          onClick={() => handleTimeSelect(time)}
-                          className="text-[#23508e] p-3 border border-gray-200 rounded-lg hover:bg-indigo-50
-                                    hover:border-indigo-300 transition-all duration-200 text-center"
-                        >
-                          {time}
-                        </button>
-                      ))
-                  )}
-                </div>
-              </div>
-            )}
-
-            {bookingStep == 'form' && (
-              <div>
-                <button
-                  onClick={() => setBookingStep('times')}
-                  className="flex items-center text-indigo-600 hover:text-indigo-800 mb-6 transition-colors"
-                >
-                  ← Back to time selection
-                </button>
-                
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">Complete Your Booking</h2>
-                
-                <div className="bg-gray-50 rounded-lg p-4 mb-6">
-                  <div className="flex justify-between items-start mb-2">
-                    <div>
-                      <p className="font-semibold text-gray-900">{selectedService?.name}</p>
-                      <p className="text-sm text-gray-600">{formatDate(selectedDate)} at {selectedTime}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-semibold text-gray-900">{Number(selectedService?.price) == 0 ? 'Free' : selectedService?.price}</p>
-                      <p className="text-sm text-gray-600">{selectedService?.durationMin}</p>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Full Name *
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.name}
-                      onChange={(e) => {
-                        setFormData({...formData, name: e.target.value});
-                        if (formErrors.name) setFormErrors({...formErrors, name: ''});
-                      }}
-                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-[#23508e] ${
-                        formErrors.name 
-                          ? 'border-red-500 focus:border-red-500' 
-                          : 'border-gray-300 focus:border-indigo-500'
-                      }`}
-                      placeholder="Enter your full name"
-                    />
-                    {formErrors.name && (
-                      <p className="mt-1 text-sm text-red-600">{formErrors.name}</p>
-                    )}
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Email Address *
-                    </label>
-                    <input
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) => {
-                        setFormData({...formData, email: e.target.value});
-                        if (formErrors.email) setFormErrors({...formErrors, email: ''});
-                      }}
-                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-[#23508e] ${
-                        formErrors.email 
-                          ? 'border-red-500 focus:border-red-500' 
-                          : 'border-gray-300 focus:border-indigo-500'
-                      }`}
-                      placeholder="Enter your email address"
-                    />
-                    {formErrors.email && (
-                      <p className="mt-1 text-sm text-red-600">{formErrors.email}</p>
-                    )}
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Message (Optional)
-                    </label>
-                    <textarea
-                      value={formData.message}
-                      onChange={(e) => setFormData({...formData, message: e.target.value})}
-                      rows={4}
-                      className="text-[#23508e] w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                      placeholder="Tell me about your project or what you'd like to discuss..."
-                    />
-                  </div>
-                  
-                  <button
-                    onClick={handleSubmit}
-                    className="cursor-pointer w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 transition-colors flex items-center justify-center space-x-2"
-                  >
-                    <span>Confirm Booking</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
+          <BookingInterface
+            bookingStep={bookingStep}
+            services={services}
+            selectedService={selectedService}
+            selectedDate={selectedDate}
+            selectedTime={selectedTime}
+            currentMonth={currentMonth}
+            availability={availability}
+            settings={settings}
+            formData={formData}
+            formErrors={formErrors}
+            onServiceSelect={setSelectedService}
+            onDateSelect={handleDateSelect}
+            onTimeSelect={setSelectedTime}
+            onMonthChange={setCurrentMonth}
+            onFormDataChange={setFormData}
+            onFormErrorsChange={setFormErrors}
+            onSubmit={handleSubmit}
+            onStepChange={setBookingStep}
+          />
         </div>
       </div>
     </div>
