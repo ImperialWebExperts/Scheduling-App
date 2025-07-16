@@ -43,4 +43,11 @@ export interface FormErrors {
   email: string;
 }
 
+// Updated to support multiple services
+export interface SelectedServices {
+  services: Service[];
+  totalDuration: number;
+  totalPrice: number;
+}
+
 export type BookingStep = 'services' | 'calendar' | 'times' | 'form' | 'confirmation';

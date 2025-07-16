@@ -24,6 +24,7 @@ interface BookingInterfaceProps {
   onFormErrorsChange: (errors: FormErrors) => void;
   onSubmit: () => void;
   onStepChange: (step: BookingStep) => void;
+  isSubmitting?: boolean;
 }
 
 const BookingInterface: React.FC<BookingInterfaceProps> = ({
@@ -44,7 +45,8 @@ const BookingInterface: React.FC<BookingInterfaceProps> = ({
   onFormDataChange,
   onFormErrorsChange,
   onSubmit,
-  onStepChange
+  onStepChange,
+  isSubmitting = false
 }) => {
   const handleServiceSelect = (service: Service) => {
     onServiceSelect(service);
@@ -105,6 +107,7 @@ const BookingInterface: React.FC<BookingInterfaceProps> = ({
           onFormErrorsChange={onFormErrorsChange}
           onSubmit={onSubmit}
           onBack={() => onStepChange('times')}
+          isSubmitting={isSubmitting}
         />
       )}
     </div>

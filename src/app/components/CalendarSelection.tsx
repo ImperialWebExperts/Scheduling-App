@@ -27,15 +27,6 @@ const CalendarSelection: React.FC<CalendarSelectionProps> = ({
     'July', 'August', 'September', 'October', 'November', 'December'
   ];
 
-//   const formatDate = (date: Date) => {
-//     return date.toLocaleDateString('en-US', {
-//       weekday: 'long',
-//       year: 'numeric',
-//       month: 'long',
-//       day: 'numeric'
-//     });
-//   };
-
   const getMaxDate = () => {
     const today = new Date();
     const maxDate = new Date(today);

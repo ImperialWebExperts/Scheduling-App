@@ -6,7 +6,10 @@ interface ServiceSelectionProps {
   onServiceSelect: (service: Service) => void;
 }
 
-const ServiceSelection: React.FC<ServiceSelectionProps> = ({ services, onServiceSelect }) => {
+const ServiceSelection: React.FC<ServiceSelectionProps> = ({ 
+  services, 
+  onServiceSelect 
+}) => {
   return (
     <div>
       <h2 className="text-2xl font-bold text-gray-900 mb-6">Choose a Service</h2>

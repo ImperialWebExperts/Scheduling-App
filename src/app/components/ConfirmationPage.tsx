@@ -1,8 +1,9 @@
 import React from 'react';
 import { Check } from 'lucide-react';
-import { BookingFormData } from '../types';
+import { BookingFormData, Service } from '@/app/types';
 
 interface ConfirmationPageProps {
+  selectedService: Service | null;
   selectedDate: Date | null;
   selectedTime: string | null;
   formData: BookingFormData;
@@ -10,6 +11,7 @@ interface ConfirmationPageProps {
 }
 
 const ConfirmationPage: React.FC<ConfirmationPageProps> = ({
+  selectedService,
   selectedDate,
   selectedTime,
   formData,
@@ -38,10 +40,16 @@ const ConfirmationPage: React.FC<ConfirmationPageProps> = ({
           <div className="bg-gray-50 rounded-lg p-6 mb-6">
             <h3 className="font-semibold text-gray-900 mb-2">Meeting Details</h3>
             <div className="space-y-2 text-sm text-gray-600">
+              <p><strong>Service:</strong> {selectedService?.name}</p>
               <p><strong>Date:</strong> {formatDate(selectedDate)}</p>
               <p><strong>Time:</strong> {selectedTime}</p>
-              <p><strong>Duration:</strong> 30 minutes</p>
+              <p><strong>Duration:</strong> {selectedService?.durationMin} minutes</p>
+              <p><strong>Price:</strong> {Number(selectedService?.price) === 0 ? 'Free' : selectedService?.price}</p>
               <p><strong>Attendee:</strong> {formData.name}</p>
+              <p><strong>Email:</strong> {formData.email}</p>
+              {formData.message && (
+                <p><strong>Message:</strong> {formData.message}</p>
+              )}
             </div>
           </div>
           
