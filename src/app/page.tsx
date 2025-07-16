@@ -1,8 +1,15 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import generateTimeSlots from '@/app/lib/generateTimeSlots';
 import { Clock, Check, ArrowRight, Globe, Shield, Zap } from 'lucide-react';
 
 const SchedulingApp = () => {
+  const [services, setServices] = useState<Service[]>([]);
+  const [serviceLoading, setServiceLoading] = useState(true);
+  const [settings, setSettings] = useState<Setting | undefined>();
+  const [settingsLoading, setSettingsLoading] = useState(true);
+  const [availability, setAvailability] = useState<Availability[]>([]);
+  const [availabilityLoading, setAvailabilityLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -18,42 +25,66 @@ const SchedulingApp = () => {
     email: ''
   });
 
-  // Mock services data
-  const services = [
-    {
-      id: 'website',
-      name: 'Website Estimate',
-      duration: '20 min',
-      price: 'Free',
-      description: 'Initial consultation to discuss your project goals and explore how we can work together.',
-      features: ['Project overview', 'Goal alignment', 'Timeline discussion', 'Q&A session']
-    },
-    {
-      id: 'hosting-maintenance',
-      name: 'Hosting & Maintenance Estimate',
-      duration: '20 min',
-      price: 'Free',
-      description: 'Explore our hosting and maintenance services to keep your website running smoothly.',
-      features: ['Design audit', 'UX analysis', 'Actionable feedback', 'Improvement plan']
-    },
-    {
-      id: 'strategy',
-      name: 'Brainstorming Strategy Session',
-      duration: '20 min',
-      price: 'Free',
-      description: 'Got an idea for a Software as a Service (SaaS) or web app? Let\'s brainstorm together!',
-      features: ['User research insights', 'Strategy development', 'Action plan creation', 'Follow-up resources']
-    },
-  ];
-
   interface Service {
     id: string;
     name: string;
-    duration: string;
+    description: string;    
+    durationMin: string;
     price: string;
-    description: string;
-    features: string[];
+    businessId: string;
   }
+  interface Setting {
+    id: string;
+    bufferMinutes: number;
+    maxAdvanceDays: number;
+    businessId: string;
+  }  
+  interface Availability {
+    id: string;
+    dayOfWeek: number;
+    startTime: string;
+    endTime: string;
+    businessId: string;
+  }  
+
+  useEffect(() => {
+    const fetchServices = async () => {
+      try {
+        const res = await fetch('/api/services');
+        const data = await res.json();
+        setServices(data);
+      } catch (error) {
+        console.error('Failed to load services:', error);
+      } finally {
+        setServiceLoading(false);
+      }
+    };
+    const fetchSettings = async () => {
+      try {
+        const res = await fetch('/api/settings');
+        const data = await res.json();
+        setSettings(data);
+      } catch (error) {
+        console.error('Failed to load settings:', error);
+      } finally {
+        setSettingsLoading(false);
+      }
+    };
+    const fetchAvailability = async () => {
+      try {
+        const res = await fetch('/api/availability');
+        const data = await res.json();
+        setAvailability(data);
+      } catch (error) {
+        console.error('Failed to load availability:', error);
+      } finally {
+        setAvailabilityLoading(false);
+      }
+    };    
+    fetchServices();
+    fetchSettings();
+    fetchAvailability();
+  }, []);
 
   interface CalendarDay {
     date: Date;
@@ -69,12 +100,13 @@ const SchedulingApp = () => {
     setBookingStep('calendar');
   };
 
-  const availableTimes = [
-    '08:30 AM', '09:00 AM', '09:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM',
-    '02:00 PM', '02:30 PM', '03:00 PM', '03:30 PM', '04:00 PM', '04:30 PM', '05:00 PM'
-  ];
+  // const availableTimes = [
+  //   '08:30 AM', '09:00 AM', '09:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM',
+  //   '02:00 PM', '02:30 PM', '03:00 PM', '03:30 PM', '04:00 PM', '04:30 PM', '05:00 PM'
+  // ];
 
   // Email validation function
+  
   const validateEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
@@ -107,7 +139,7 @@ const SchedulingApp = () => {
   const getMaxDate = () => {
     const today = new Date();
     const maxDate = new Date(today);
-    maxDate.setMonth(maxDate.getMonth() + 6);
+    maxDate.setMonth(maxDate.getMonth() + (settings?.maxAdvanceDays || 3));
     return maxDate;
   };
 
@@ -118,39 +150,47 @@ const SchedulingApp = () => {
   };
 
   // Generate calendar days
-  const generateCalendar = () => {
-    const year = currentMonth.getFullYear();
-    const month = currentMonth.getMonth();
-    const firstDay = new Date(year, month, 1);
-    const startDate = new Date(firstDay);
-    startDate.setDate(startDate.getDate() - firstDay.getDay());
-    
-    const days = [];
-    const currentDate = new Date(startDate);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const maxDate = getMaxDate();
-    
-    for (let i = 0; i < 42; i++) {
-      const isCurrentMonth = currentDate.getMonth() === month;
-      const isToday = currentDate.toDateString() === new Date().toDateString();
-      const isPast = currentDate.getTime() < today.getTime();
-      const isBeyondLimit = currentDate > maxDate;
-      
-      days.push({
-        date: new Date(currentDate),
-        isCurrentMonth,
-        isToday,
-        isPast,
-        isBeyondLimit,
-        dayNumber: currentDate.getDate()
-      });
-      
-      currentDate.setDate(currentDate.getDate() + 1);
-    }
-    
-    return days;
-  };
+const generateCalendar = () => {
+  const year = currentMonth.getFullYear();
+  const month = currentMonth.getMonth();
+  const firstDay = new Date(year, month, 1);
+  const startDate = new Date(firstDay);
+  startDate.setDate(startDate.getDate() - firstDay.getDay());
+
+  const days = [];
+  const currentDate = new Date(startDate);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const maxDate = getMaxDate();
+
+
+  const closedDayNumbers = availability
+    .filter(a => a.startTime === 'Closed') // or however you're storing it
+    .map(a => a.dayOfWeek); // gives you [0, 6] for example
+
+  for (let i = 0; i < 42; i++) {
+    const isClosed = closedDayNumbers.includes(currentDate.getDay());
+    const isCurrentMonth = currentDate.getMonth() == month;
+    const isToday = currentDate.toDateString() == today.toDateString();
+    const isPast = currentDate.getTime() < today.getTime();
+    const isBeyondLimit = currentDate > maxDate;
+
+    days.push({
+      date: new Date(currentDate),
+      isCurrentMonth,
+      isToday,
+      isPast,
+      isBeyondLimit,
+      isClosed,
+      dayNumber: currentDate.getDate()
+    });
+
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
+
+  return days;
+};
+
 
   const handleDateSelect = (day: CalendarDay) => {
     if (day.isPast || !day.isCurrentMonth || day.isBeyondLimit) return;
@@ -199,7 +239,7 @@ const SchedulingApp = () => {
     return prevMonth.getMonth() >= today.getMonth() && prevMonth.getFullYear() >= today.getFullYear();
   };
 
-  if (bookingStep === 'confirmation') {
+  if (bookingStep == 'confirmation') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50">
         <div className="max-w-2xl mx-auto px-4 py-20">
@@ -238,6 +278,9 @@ const SchedulingApp = () => {
       </div>
     );
   }
+  if (serviceLoading) return <p>Loading services...</p>;
+  if (settingsLoading) return <p>Loading settings...</p>;
+  if (availabilityLoading) return <p>Loading availability...</p>;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50">
@@ -260,17 +303,7 @@ const SchedulingApp = () => {
                 <Clock className="w-5 h-5 mr-2 text-indigo-600" />
                 {selectedService ? selectedService.name : 'Multiple Services Available'}
               </h3>
-              {selectedService ? (
-                <ul className="space-y-3 text-gray-600">
-                  {selectedService.features.map((feature, index) => (
-                    <li key={index} className="flex items-start">
-                      <Check className="w-5 h-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <ul className="space-y-3 text-gray-600">
+              <ul className="space-y-3 text-gray-600">
                   <li className="flex items-start">
                     <Check className="w-5 h-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
                     Custom website designs that don&apos;t just look good but also convert visitors into customers
@@ -283,8 +316,7 @@ const SchedulingApp = () => {
                     <Check className="w-5 h-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
                     Automated booking system to streamline your scheduling process
                   </li>
-                </ul>
-              )}
+              </ul>
             </div>
 
             <div className="grid grid-cols-3 gap-4">
@@ -305,7 +337,7 @@ const SchedulingApp = () => {
 
           {/* Right Column - Booking Interface */}
           <div className="bg-white rounded-2xl shadow-2xl p-8">
-            {bookingStep === 'services' && (
+            {bookingStep == 'services' && (
               <div>
                 <h2 className="text-2xl font-bold text-gray-900 mb-6">Choose a Service</h2>
                 <div className="space-y-4">
@@ -320,33 +352,18 @@ const SchedulingApp = () => {
                           {service.name}
                         </h3>
                         <div className="text-right">
-                          <div className="text-lg font-bold text-indigo-600">{service.price}</div>
-                          <div className="text-sm text-gray-500">{service.duration}</div>
+                          <div className="text-lg font-bold text-indigo-600">{Number(service?.price) == 0 ? 'Free' : service?.price}</div>
+                          <div className="text-sm text-gray-500">Duration: {service.durationMin} min</div>
                         </div>
                       </div>
                       <p className="text-gray-600 mb-4">{service.description}</p>
-                      <div className="flex flex-wrap gap-2">
-                        {service.features.slice(0, 3).map((feature, index) => (
-                          <span
-                            key={index}
-                            className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800"
-                          >
-                            {feature}
-                          </span>
-                        ))}
-                        {service.features.length > 3 && (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                            +{service.features.length - 3} more
-                          </span>
-                        )}
-                      </div>
                     </div>
                   ))}
                 </div>
               </div>
             )}
 
-            {bookingStep === 'calendar' && (
+            {bookingStep == 'calendar' && (
               <div>
                 <button
                   onClick={() => setBookingStep('services')}
@@ -357,11 +374,11 @@ const SchedulingApp = () => {
                 
                 <div className="mb-6">
                   <h2 className="text-2xl font-bold text-gray-900">Select a Date</h2>
-                  <p className="mb-2 text-[#23508e]">Plan ahead—appointments are available up to 6 months in advance!</p>
+                  <p className="mb-2 text-[#23508e]">Plan ahead—appointments are available up to {settings?.maxAdvanceDays || 3} months in advance!</p>
                   <div className="bg-indigo-50 rounded-lg p-3 flex items-center justify-between">
                     <div>
                       <p className="font-semibold text-indigo-900">{selectedService?.name}</p>
-                      <p className="text-sm text-indigo-600">{selectedService?.duration} • {selectedService?.price}</p>
+                      <p className="text-sm text-indigo-600">{selectedService?.durationMin} min • {Number(selectedService?.price) == 0 ? 'Free' : selectedService?.price}</p>
                     </div>
                   </div>
                 </div>
@@ -403,31 +420,25 @@ const SchedulingApp = () => {
                     </div>
                   ))}
                 </div>
-
                 <div className="grid grid-cols-7 gap-1">
                   {days.map((day, index) => (
                     <button
                       key={index}
                       onClick={() => handleDateSelect(day)}
-                      disabled={day.isPast || !day.isCurrentMonth || day.isBeyondLimit}
+                      disabled={day.isPast || !day.isCurrentMonth || day.isBeyondLimit || day.isClosed}
                       className={`
                         aspect-square p-2 text-sm rounded-lg transition-all duration-200
-                        ${day.isCurrentMonth 
-                          ? day.isPast || day.isBeyondLimit
-                            ? 'text-gray-300 cursor-not-allowed' 
-                            : 'text-gray-900 hover:bg-indigo-50 hover:text-indigo-600 cursor-pointer'
-                          : 'text-gray-300 cursor-not-allowed'
-                        }
+                        ${day.isClosed ? 'bg-red-50 text-red-300 cursor-not-allowed' : ''}
                         ${day.isToday ? 'bg-indigo-600 text-white hover:bg-indigo-700' : ''}
-                        ${selectedDate && selectedDate.toDateString() === day.date.toDateString() ? 'bg-indigo-100 text-indigo-600' : ''}
-                        ${day.isBeyondLimit && day.isCurrentMonth ? 'bg-red-50 text-red-300' : ''}
+                        ${selectedDate?.toDateString() === day.date.toDateString() ? 'bg-indigo-100 text-indigo-600' : ''}
+                        ${!day.isCurrentMonth || day.isPast || day.isClosed || day.isBeyondLimit ? 'text-gray-300 cursor-not-allowed' : 'text-gray-900 hover:bg-indigo-50 hover:text-indigo-600'}
+                        ${day.isBeyondLimit ? 'bg-black-50 text-gray-300 opacity-50 cursor-not-allowed' : ''}
                       `}
                     >
                       {day.dayNumber}
                     </button>
                   ))}
                 </div>
-
                 {isMonthBeyondLimit(currentMonth) && (
                   <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
                     <p className="text-sm text-amber-800">
@@ -438,7 +449,7 @@ const SchedulingApp = () => {
               </div>
             )}
 
-            {bookingStep === 'times' && (
+            {bookingStep == 'times' && (
               <div>
                 <button
                   onClick={() => setBookingStep('calendar')}
@@ -451,25 +462,32 @@ const SchedulingApp = () => {
                   <h2 className="text-2xl font-bold text-gray-900 mb-2">Select a Time</h2>
                   <div className="bg-indigo-50 rounded-lg p-3 mb-4">
                     <p className="font-semibold text-indigo-900">{selectedService?.name}</p>
-                    <p className="text-sm text-indigo-600">{formatDate(selectedDate)} • {selectedService?.duration} • {selectedService?.price}</p>
+                    <p className="text-sm text-indigo-600">{formatDate(selectedDate)} • {selectedService?.durationMin} min • {Number(selectedService?.price) == 0 ? 'Free' : selectedService?.price}</p>
                   </div>
                 </div>
                 
                 <div className="grid grid-cols-2 gap-3">
-                  {availableTimes.map((time) => (
-                    <button
-                      key={time}
-                      onClick={() => handleTimeSelect(time)}
-                      className="text-[#23508e] p-3 border border-gray-200 rounded-lg hover:bg-indigo-50 hover:border-indigo-300 transition-all duration-200 text-center"
-                    >
-                      {time}
-                    </button>
-                  ))}
+                  {!selectedDate ? null : (
+                    // 0‑6 for Sun‑Sat
+                    availability
+                      .filter(a => a.dayOfWeek === selectedDate.getDay())
+                      .flatMap(({ startTime, endTime  }) => generateTimeSlots(startTime, endTime))
+                      .map(time => (
+                        <button
+                          key={time}
+                          onClick={() => handleTimeSelect(time)}
+                          className="text-[#23508e] p-3 border border-gray-200 rounded-lg hover:bg-indigo-50
+                                    hover:border-indigo-300 transition-all duration-200 text-center"
+                        >
+                          {time}
+                        </button>
+                      ))
+                  )}
                 </div>
               </div>
             )}
 
-            {bookingStep === 'form' && (
+            {bookingStep == 'form' && (
               <div>
                 <button
                   onClick={() => setBookingStep('times')}
@@ -487,8 +505,8 @@ const SchedulingApp = () => {
                       <p className="text-sm text-gray-600">{formatDate(selectedDate)} at {selectedTime}</p>
                     </div>
                     <div className="text-right">
-                      <p className="font-semibold text-gray-900">{selectedService?.price}</p>
-                      <p className="text-sm text-gray-600">{selectedService?.duration}</p>
+                      <p className="font-semibold text-gray-900">{Number(selectedService?.price) == 0 ? 'Free' : selectedService?.price}</p>
+                      <p className="text-sm text-gray-600">{selectedService?.durationMin}</p>
                     </div>
                   </div>
                 </div>
