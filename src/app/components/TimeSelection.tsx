@@ -1,6 +1,6 @@
 // src/app/components/TimeSelection.tsx
 import React from 'react';
-import { Availability, Appointment, SelectedServices } from '../types';
+import { SelectedServices, Availability, Appointment } from '../types';
 import generateTimeSlots from '../lib/generateTimeSlots';
 
 interface TimeSelectionProps {
@@ -57,16 +57,12 @@ const TimeSelection: React.FC<TimeSelectionProps> = ({
       <div className="mb-6">
         <h2 className="text-2xl font-bold text-gray-900 mb-2">Select a Time</h2>
         <div className="bg-indigo-50 rounded-lg p-3 mb-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-semibold text-indigo-900">
-                {selectedServices.services.length} Service{selectedServices.services.length !== 1 ? 's' : ''} Selected
-              </p>
-              <p className="text-sm text-indigo-600">
-                {formatDate(selectedDate)} • {selectedServices.totalDuration} min • {selectedServices.totalPrice === 0 ? 'Free' : `$${selectedServices.totalPrice.toFixed(2)}`}
-              </p>
-            </div>
-          </div>
+          <p className="font-semibold text-indigo-900">
+            {selectedServices.services.length} Service{selectedServices.services.length !== 1 ? 's' : ''} Selected
+          </p>
+          <p className="text-sm text-indigo-600 mb-2">
+            {formatDate(selectedDate)} • {selectedServices.totalDuration} min • {selectedServices.totalPrice === 0 ? 'Free' : `$${selectedServices.totalPrice.toFixed(2)}`}
+          </p>
           {selectedServices.services.length > 1 && (
             <div className="mt-2 pt-2 border-t border-indigo-200">
               <p className="text-xs text-indigo-700 font-medium">Services:</p>
