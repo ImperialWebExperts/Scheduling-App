@@ -1,5 +1,5 @@
 'use client';
-import React from 'react';
+import React, { useState } from 'react';
 import { useSchedulingData } from './hooks/useSchedulingData';
 import { useBookingState } from './hooks/useBookingState';
 import InfoPanel from './components/InfoPanel';
@@ -8,6 +8,9 @@ import ConfirmationPage from './components/ConfirmationPage';
 import { CalendarDay } from './types';
 
 const SchedulingApp = () => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
   const {
     services,
     serviceLoading,
@@ -26,8 +29,8 @@ const SchedulingApp = () => {
     setCurrentMonth,
     bookingStep,
     setBookingStep,
-    selectedServices,
-    toggleService,
+    selectedService,
+    setSelectedService,
     formData,
     setFormData,
     formErrors,
@@ -39,15 +42,52 @@ const SchedulingApp = () => {
     setSelectedDate(day.date);
   };
 
-  const handleSubmit = () => {
-    setBookingStep('confirmation');
+  const handleSubmit = async () => {
+    if (!selectedService || !selectedDate || !selectedTime) {
+      setSubmitError('Missing required booking information');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setSubmitError(null);
+
+    try {
+      const response = await fetch('/api/appointments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          serviceId: selectedService.id,
+          date: selectedDate.toISOString().split('T')[0], // YYYY-MM-DD format
+          time: selectedTime,
+          clientName: formData.name,
+          clientEmail: formData.email,
+          notes: formData.message,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to create appointment');
+      }
+
+      // Success! Move to confirmation page
+      setBookingStep('confirmation');
+    } catch (error) {
+      console.error('Booking submission error:', error);
+      setSubmitError(error instanceof Error ? error.message : 'Failed to create appointment');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // Show confirmation page with different layout
   if (bookingStep === 'confirmation') {
     return (
       <ConfirmationPage
-        selectedServices={selectedServices}
+        selectedService={selectedService}
         selectedDate={selectedDate}
         selectedTime={selectedTime}
         formData={formData}
@@ -73,13 +113,13 @@ const SchedulingApp = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-12">
         <div className="grid lg:grid-cols-2 gap-12 items-start">
           {/* Left Column - Info */}
-          <InfoPanel selectedServices={selectedServices} />
+          <InfoPanel selectedService={selectedService} />
 
           {/* Right Column - Booking Interface */}
           <BookingInterface
             bookingStep={bookingStep}
             services={services}
-            selectedServices={selectedServices}
+            selectedService={selectedService}
             selectedDate={selectedDate}
             selectedTime={selectedTime}
             currentMonth={currentMonth}
@@ -87,7 +127,9 @@ const SchedulingApp = () => {
             settings={settings}
             formData={formData}
             formErrors={formErrors}
-            onServiceToggle={toggleService}
+            isSubmitting={isSubmitting}
+            submitError={submitError}
+            onServiceSelect={setSelectedService}
             onDateSelect={handleDateSelect}
             onTimeSelect={setSelectedTime}
             onMonthChange={setCurrentMonth}

@@ -1,13 +1,15 @@
 import React from 'react';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Loader2 } from 'lucide-react';
 import { Service, BookingFormData, FormErrors } from '../types';
 
 interface BookingFormProps {
-  selectedServices: Service[];
+  selectedService: Service | null;
   selectedDate: Date | null;
   selectedTime: string | null;
   formData: BookingFormData;
   formErrors: FormErrors;
+  isSubmitting?: boolean;
+  submitError?: string | null;
   onFormDataChange: (data: BookingFormData) => void;
   onFormErrorsChange: (errors: FormErrors) => void;
   onSubmit: () => void;
@@ -15,11 +17,13 @@ interface BookingFormProps {
 }
 
 const BookingForm: React.FC<BookingFormProps> = ({
-  selectedServices,
+  selectedService,
   selectedDate,
   selectedTime,
   formData,
   formErrors,
+  isSubmitting = false,
+  submitError = null,
   onFormDataChange,
   onFormErrorsChange,
   onSubmit,
@@ -33,18 +37,6 @@ const BookingForm: React.FC<BookingFormProps> = ({
       month: 'long',
       day: 'numeric'
     });
-  };
-
-  const getTotalDuration = () => {
-    return selectedServices.reduce((total, service) => total + parseInt(service.durationMin), 0);
-  };
-
-  const getTotalPrice = () => {
-    return selectedServices.reduce((total, service) => total + parseFloat(service.price || '0'), 0);
-  };
-
-  const formatPrice = (price: number) => {
-    return price === 0 ? 'Free' : `${price}`;
   };
 
   const validateEmail = (email: string): boolean => {
@@ -73,7 +65,7 @@ const BookingForm: React.FC<BookingFormProps> = ({
   };
 
   const handleSubmit = () => {
-    if (validateForm()) {
+    if (validateForm() && !isSubmitting) {
       onSubmit();
     }
   };
@@ -91,45 +83,34 @@ const BookingForm: React.FC<BookingFormProps> = ({
     <div>
       <button
         onClick={onBack}
-        className="flex items-center text-indigo-600 hover:text-indigo-800 mb-6 transition-colors"
+        disabled={isSubmitting}
+        className="flex items-center text-indigo-600 hover:text-indigo-800 mb-6 transition-colors disabled:opacity-50"
       >
         ← Back to time selection
       </button>
       
       <h2 className="text-2xl font-bold text-gray-900 mb-6">Complete Your Booking</h2>
       
-      {/* Booking Summary */}
-      <div className="bg-gray-50 rounded-lg p-6 mb-6">
-        <div className="flex justify-between items-start mb-4">
+      <div className="bg-gray-50 rounded-lg p-4 mb-6">
+        <div className="flex justify-between items-start mb-2">
           <div>
-            <p className="font-semibold text-gray-900 mb-2">
-              {selectedServices.length} Service{selectedServices.length !== 1 ? 's' : ''} Booked
-            </p>
-            <p className="text-sm text-gray-600 mb-3">{formatDate(selectedDate)} at {selectedTime}</p>
-            
-            {/* Service List */}
-            <div className="space-y-2">
-              {selectedServices.map((service, index) => (
-                <div key={service.id} className="flex justify-between items-center text-sm bg-white rounded px-3 py-2">
-                  <span className="text-blue-800">{index + 1}. {service.name}</span>
-                  <div className="text-right">
-                    <span className="text-blue-600">{service.durationMin} min</span>
-                    {parseFloat(service.price || '0') > 0 && (
-                      <span className="ml-2 text-indigo-600">${service.price}</span>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
+            <p className="font-semibold text-gray-900">{selectedService?.name}</p>
+            <p className="text-sm text-gray-600">{formatDate(selectedDate)} at {selectedTime}</p>
           </div>
           <div className="text-right">
-            <p className="font-semibold text-gray-900 text-lg">
-              {formatPrice(getTotalPrice())}
+            <p className="font-semibold text-gray-900">
+              {Number(selectedService?.price) === 0 ? 'Free' : selectedService?.price}
             </p>
-            <p className="text-sm text-gray-600">{getTotalDuration()} min total</p>
+            <p className="text-sm text-gray-600">{selectedService?.durationMin}</p>
           </div>
         </div>
       </div>
+
+      {submitError && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+          <p className="text-sm text-red-600">{submitError}</p>
+        </div>
+      )}
       
       <div className="space-y-4">
         <div>
@@ -140,7 +121,8 @@ const BookingForm: React.FC<BookingFormProps> = ({
             type="text"
             value={formData.name}
             onChange={(e) => handleInputChange('name', e.target.value)}
-            className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-[#23508e] ${
+            disabled={isSubmitting}
+            className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-[#23508e] disabled:opacity-50 disabled:cursor-not-allowed ${
               formErrors.name 
                 ? 'border-red-500 focus:border-red-500' 
                 : 'border-gray-300 focus:border-indigo-500'
@@ -160,7 +142,8 @@ const BookingForm: React.FC<BookingFormProps> = ({
             type="email"
             value={formData.email}
             onChange={(e) => handleInputChange('email', e.target.value)}
-            className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-[#23508e] ${
+            disabled={isSubmitting}
+            className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-[#23508e] disabled:opacity-50 disabled:cursor-not-allowed ${
               formErrors.email 
                 ? 'border-red-500 focus:border-red-500' 
                 : 'border-gray-300 focus:border-indigo-500'
@@ -179,18 +162,29 @@ const BookingForm: React.FC<BookingFormProps> = ({
           <textarea
             value={formData.message}
             onChange={(e) => handleInputChange('message', e.target.value)}
+            disabled={isSubmitting}
             rows={4}
-            className="text-[#23508e] w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            className="text-[#23508e] w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
             placeholder="Tell me about your project or what you'd like to discuss..."
           />
         </div>
         
         <button
           onClick={handleSubmit}
-          className="cursor-pointer w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 transition-colors flex items-center justify-center space-x-2"
+          disabled={isSubmitting}
+          className="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 transition-colors flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <span>Confirm Booking</span>
-          <ArrowRight className="w-4 h-4" />
+          {isSubmitting ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span>Creating Booking...</span>
+            </>
+          ) : (
+            <>
+              <span>Confirm Booking</span>
+              <ArrowRight className="w-4 h-4" />
+            </>
+          )}
         </button>
       </div>
     </div>

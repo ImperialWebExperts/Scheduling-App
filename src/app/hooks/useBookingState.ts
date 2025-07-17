@@ -6,7 +6,7 @@ export const useBookingState = () => {
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [bookingStep, setBookingStep] = useState<BookingStep>('services');
-  const [selectedServices, setSelectedServices] = useState<Service[]>([]);
+  const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [formData, setFormData] = useState<BookingFormData>({
     name: '',
     email: '',
@@ -17,39 +17,9 @@ export const useBookingState = () => {
     email: ''
   });
 
-  const addService = (service: Service) => {
-    setSelectedServices(prev => {
-      if (prev.find(s => s.id === service.id)) {
-        return prev; // Service already selected
-      }
-      return [...prev, service];
-    });
-  };
-
-  const removeService = (serviceId: string) => {
-    setSelectedServices(prev => prev.filter(s => s.id !== serviceId));
-  };
-
-  const toggleService = (service: Service) => {
-    const isSelected = selectedServices.find(s => s.id === service.id);
-    if (isSelected) {
-      removeService(service.id);
-    } else {
-      addService(service);
-    }
-  };
-
-  const getTotalDuration = () => {
-    return selectedServices.reduce((total, service) => total + parseInt(service.durationMin), 0);
-  };
-
-  const getTotalPrice = () => {
-    return selectedServices.reduce((total, service) => total + parseFloat(service.price || '0'), 0);
-  };
-
   const resetBooking = () => {
     setBookingStep('services');
-    setSelectedServices([]);
+    setSelectedService(null);
     setSelectedDate(null);
     setSelectedTime(null);
     setFormData({ name: '', email: '', message: '' });
@@ -66,13 +36,8 @@ export const useBookingState = () => {
     setCurrentMonth,
     bookingStep,
     setBookingStep,
-    selectedServices,
-    setSelectedServices,
-    addService,
-    removeService,
-    toggleService,
-    getTotalDuration,
-    getTotalPrice,
+    selectedService,
+    setSelectedService,
     formData,
     setFormData,
     formErrors,
