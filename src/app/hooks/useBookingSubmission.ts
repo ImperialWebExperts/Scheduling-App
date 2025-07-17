@@ -17,6 +17,11 @@ export const useBookingSubmission = () => {
       return false;
     }
 
+    if (!formData.name.trim() || !formData.email.trim()) {
+      setSubmitError('Please fill in all required fields');
+      return false;
+    }
+
     setIsSubmitting(true);
     setSubmitError(null);
 
@@ -26,6 +31,17 @@ export const useBookingSubmission = () => {
       
       // Convert time to 24-hour format for API
       const time24 = convertTo24Hour(selectedTime);
+
+      console.log('Submitting booking with:', {
+        serviceIds,
+        date: dateString,
+        time: time24,
+        clientName: formData.name,
+        clientEmail: formData.email,
+        totalDuration: selectedServices.totalDuration,
+        totalPrice: selectedServices.totalPrice
+      });
+
       const response = await fetch('/api/appointments', {
         method: 'POST',
         headers: {
@@ -37,8 +53,7 @@ export const useBookingSubmission = () => {
           time: time24,
           clientName: formData.name,
           clientEmail: formData.email,
-          clientPhone: '', // You could add this to the form if needed
-          notes: formData.message,
+          notes: formData.message || '',
         }),
       });
 
@@ -53,7 +68,21 @@ export const useBookingSubmission = () => {
 
     } catch (error) {
       console.error('Error submitting booking:', error);
-      setSubmitError(error instanceof Error ? error.message : 'Failed to submit booking');
+      
+      // Provide more specific error messages
+      let errorMessage = 'Failed to submit booking';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('fetch')) {
+          errorMessage = 'Network error. Please check your connection and try again.';
+        } else if (error.message.includes('time slot')) {
+          errorMessage = 'This time slot is no longer available. Please select a different time.';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
+      setSubmitError(errorMessage);
       return false;
     } finally {
       setIsSubmitting(false);
@@ -61,31 +90,35 @@ export const useBookingSubmission = () => {
   };
 
   // Helper function to convert 12-hour time to 24-hour format
-const convertTo24Hour = (time12: string): string => {
-  const [time, modifier] = time12.split(' ');
-  const [hours, minutes] = time.split(':');
-  
-  let hour24 = parseInt(hours, 10);
-  
-  if (modifier === 'AM') {
-    // For AM times: 12 AM becomes 00, all others stay the same
-    if (hour24 === 12) {
-      hour24 = 0;
+  const convertTo24Hour = (time12: string): string => {
+    try {
+      const [time, modifier] = time12.split(' ');
+      let [hours] = time.split(':');
+      const [, minutes] = time.split(':');
+      
+      if (hours === '12') {
+        hours = '00';
+      }
+      
+      if (modifier?.toUpperCase() === 'PM') {
+        hours = (parseInt(hours, 10) + 12).toString();
+      }
+      
+      return `${hours.padStart(2, '0')}:${minutes}:00`;
+    } catch (error) {
+      console.error('Error converting time format:', error);
+      throw new Error('Invalid time format');
     }
-  } else if (modifier === 'PM') {
-    // For PM times: 12 PM stays 12, all others add 12
-    if (hour24 !== 12) {
-      hour24 += 12;
-    }
-  }
-  
-  return `${hour24.toString().padStart(2, '0')}:${minutes}:00`;
-};
+  };
 
+  const clearError = () => {
+    setSubmitError(null);
+  };
 
   return {
     submitBooking,
     isSubmitting,
     submitError,
+    clearError,
   };
 };

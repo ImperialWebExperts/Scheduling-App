@@ -45,34 +45,31 @@ const SchedulingApp = () => {
 
   const { submitBooking, isSubmitting, submitError } = useBookingSubmission();
 
-  const handleServiceToggle = (service: Service) => {
-    const isSelected = selectedServices.services.some(s => s.id === service.id);
-    
-    if (isSelected) {
-      // Remove service
-      const newServices = selectedServices.services.filter(s => s.id !== service.id);
-      setSelectedServices(newServices);
-    } else {
-      // Add service
-      setSelectedServices([...selectedServices.services, service]);
-    }
-  };
-
-  const handleServiceContinue = () => {
-    if (selectedServices.services.length > 0) {
-      setBookingStep('calendar');
-    }
-  };
-
   const handleDateSelect = (day: CalendarDay) => {
-    if (day.isPast || !day.isCurrentMonth || day.isBeyondLimit || day.isClosed) return;
+    console.log('handleDateSelect called with:', day); // Debug log
     setSelectedDate(day.date);
+    // Automatically move to time selection after date is selected
     setBookingStep('times');
   };
 
-  const handleTimeSelect = (time: string) => {
-    setSelectedTime(time);
-    setBookingStep('form');
+  const handleServiceToggle = (service: Service) => {
+    const currentServices = selectedServices.services;
+    const isSelected = currentServices.some(s => s.id === service.id);
+    
+    if (isSelected) {
+      // Remove service
+      const newServices = currentServices.filter(s => s.id !== service.id);
+      setSelectedServices(newServices);
+    } else {
+      // Add service
+      setSelectedServices([...currentServices, service]);
+    }
+  };
+
+  const handleContinueFromServices = () => {
+    if (selectedServices.services.length > 0) {
+      setBookingStep('calendar');
+    }
   };
 
   const handleSubmit = async () => {
@@ -80,6 +77,7 @@ const SchedulingApp = () => {
     
     if (success) {
       setBookingStep('confirmation');
+      // Refresh appointments to update available times
       await refreshAppointments();
     }
   };
@@ -118,15 +116,17 @@ const SchedulingApp = () => {
 
           {/* Right Column - Booking Interface */}
           <div className="bg-white rounded-2xl shadow-2xl p-8">
+            {/* Service Selection Step */}
             {bookingStep === 'services' && (
               <ServiceSelection
                 services={services}
                 selectedServices={selectedServices.services}
                 onServiceToggle={handleServiceToggle}
-                onContinue={handleServiceContinue}
+                onContinue={handleContinueFromServices}
               />
             )}
 
+            {/* Calendar Selection Step */}
             {bookingStep === 'calendar' && (
               <CalendarSelection
                 selectedServices={selectedServices}
@@ -140,17 +140,24 @@ const SchedulingApp = () => {
               />
             )}
 
+            {/* Time Selection Step */}
             {bookingStep === 'times' && (
               <TimeSelection
                 selectedServices={selectedServices}
                 selectedDate={selectedDate}
                 availability={availability}
                 existingAppointments={appointments}
-                onTimeSelect={handleTimeSelect}
+                settings={settings}
+                onTimeSelect={(time) => {
+                  console.log('Time selected:', time); // Debug log
+                  setSelectedTime(time);
+                  setBookingStep('form'); // Advance to form step
+                }}
                 onBack={() => setBookingStep('calendar')}
               />
             )}
 
+            {/* Booking Form Step */}
             {bookingStep === 'form' && (
               <BookingForm
                 selectedServices={selectedServices}
@@ -165,20 +172,20 @@ const SchedulingApp = () => {
               />
             )}
 
-            {/* Show loading during submission */}
+            {/* Show submission error if exists */}
+            {submitError && (
+              <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-sm text-red-800">{submitError}</p>
+              </div>
+            )}
+
+            {/* Show loading state during submission */}
             {isSubmitting && (
               <div className="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center rounded-2xl">
                 <div className="text-center">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-2"></div>
-                  <p className="text-gray-600">Submitting booking...</p>
+                  <p className="text-gray-600">Creating your appointment...</p>
                 </div>
-              </div>
-            )}
-
-            {/* Show submission error */}
-            {submitError && (
-              <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-                <p className="text-sm text-red-800">{submitError}</p>
               </div>
             )}
           </div>

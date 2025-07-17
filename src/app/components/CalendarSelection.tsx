@@ -53,7 +53,7 @@ const CalendarSelection: React.FC<CalendarSelectionProps> = ({
     const maxDate = getMaxDate();
 
     const closedDayNumbers = availability
-      .filter(a => a.startTime === 'Close')
+      .filter(a => a.startTime === 'Close' || a.startTime === 'close' || a.startTime === 'closed' || a.startTime === 'Closed')
       .map(a => a.dayOfWeek);
 
     for (let i = 0; i < 42; i++) {
@@ -88,6 +88,29 @@ const CalendarSelection: React.FC<CalendarSelectionProps> = ({
     const today = new Date();
     const prevMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1);
     return prevMonth.getMonth() >= today.getMonth() && prevMonth.getFullYear() >= today.getFullYear();
+  };
+
+  const handleDateClick = (day: CalendarDay) => {
+    console.log('Date clicked:', day); // Debug log
+    
+    // Check if the day is clickable
+    if (day.isPast || !day.isCurrentMonth || day.isBeyondLimit || day.isClosed) {
+      console.log('Date not clickable:', { 
+        isPast: day.isPast, 
+        isCurrentMonth: day.isCurrentMonth, 
+        isBeyondLimit: day.isBeyondLimit, 
+        isClosed: day.isClosed 
+      });
+      return;
+    }
+    
+    console.log('Calling onDateSelect with:', day);
+    onDateSelect(day);
+  };
+
+  const isDateSelected = (day: CalendarDay) => {
+    if (!selectedDate) return false;
+    return selectedDate.toDateString() === day.date.toDateString();
   };
 
   const days = generateCalendar();
@@ -167,30 +190,45 @@ const CalendarSelection: React.FC<CalendarSelectionProps> = ({
       </div>
 
       <div className="grid grid-cols-7 gap-1">
-        {days.map((day, index) => (
-          <button
-            key={index}
-            onClick={() => onDateSelect(day)}
-            disabled={day.isPast || !day.isCurrentMonth || day.isBeyondLimit || day.isClosed}
-            className={`
-              aspect-square p-2 text-sm rounded-lg transition-all duration-200
-              ${day.isClosed ? 'bg-red-50 text-red-300 cursor-not-allowed' : ''}
-              ${day.isToday ? 'bg-indigo-600 text-white hover:bg-indigo-700' : ''}
-              ${selectedDate?.toDateString() === day.date.toDateString() ? 'bg-indigo-100 text-indigo-600' : ''}
-              ${!day.isCurrentMonth || day.isPast || day.isClosed || day.isBeyondLimit ? 'text-gray-300 cursor-not-allowed' : 'text-gray-900 hover:bg-indigo-50 hover:text-indigo-600'}
-              ${day.isBeyondLimit ? 'bg-black-50 text-gray-300 opacity-50 cursor-not-allowed' : ''}
-            `}
-          >
-            {day.dayNumber}
-          </button>
-        ))}
+        {days.map((day, index) => {
+          const isSelected = isDateSelected(day);
+          const isClickable = day.isCurrentMonth && !day.isPast && !day.isBeyondLimit && !day.isClosed;
+          
+          return (
+            <button
+              key={index}
+              onClick={() => handleDateClick(day)}
+              disabled={!isClickable}
+              className={`
+                aspect-square p-2 text-sm rounded-lg transition-all duration-200 font-medium
+                ${day.isClosed ? 'bg-red-50 text-red-300 cursor-not-allowed line-through' : ''}
+                ${day.isToday && isClickable ? 'bg-indigo-600 text-white hover:bg-indigo-700' : ''}
+                ${isSelected && !day.isToday ? 'bg-indigo-500 text-white' : ''}
+                ${!day.isCurrentMonth ? 'text-gray-300 cursor-not-allowed' : ''}
+                ${day.isPast && day.isCurrentMonth ? 'text-gray-400 cursor-not-allowed' : ''}
+                ${day.isBeyondLimit && day.isCurrentMonth ? 'text-gray-300 cursor-not-allowed opacity-50' : ''}
+                ${isClickable && !isSelected && !day.isToday ? 'text-gray-900 hover:bg-indigo-50 hover:text-indigo-600 cursor-pointer' : ''}
+              `}
+            >
+              {day.dayNumber}
+            </button>
+          );
+        })}
       </div>
 
       {isMonthBeyondLimit(currentMonth) && (
         <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
           <p className="text-sm text-amber-800">
-            📅 Appointments are only available up to 6 months in advance. Please select an earlier date.
+            📅 Appointments are only available up to {settings?.maxAdvanceDays || 3} months in advance. Please select an earlier date.
           </p>
+        </div>
+      )}
+      
+      {/* Debug info - remove this in production */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="mt-4 p-2 bg-gray-100 rounded text-xs">
+          <p>Selected date: {selectedDate?.toDateString() || 'None'}</p>
+          <p>Available days this week: {availability.filter(a => a.startTime !== 'Close').length}</p>
         </div>
       )}
     </div>
