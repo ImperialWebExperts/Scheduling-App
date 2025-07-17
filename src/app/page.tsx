@@ -21,7 +21,7 @@ interface BookingStateReturn {
   resetBooking: () => void;
 }
 
-export const useBookingState = (): BookingStateReturn => {
+const useBookingState = (): BookingStateReturn => {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -104,3 +104,5 @@ export const useBookingState = (): BookingStateReturn => {
     resetBooking,
   };
 };
+
+export default useBookingState;
