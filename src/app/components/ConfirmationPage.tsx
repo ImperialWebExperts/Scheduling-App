@@ -1,11 +1,11 @@
 import React from 'react';
 import { Check } from 'lucide-react';
-import { BookingFormData, SelectedServices } from '../types';
+import { BookingFormData, Service } from '@/app/types';
 
 interface ConfirmationPageProps {
   selectedDate: Date | null;
   selectedTime: string | null;
-  selectedServices: SelectedServices;
+  selectedService: Service | null;
   formData: BookingFormData;
   onReset: () => void;
 }
@@ -13,7 +13,7 @@ interface ConfirmationPageProps {
 const ConfirmationPage: React.FC<ConfirmationPageProps> = ({
   selectedDate,
   selectedTime,
-  selectedServices,
+  selectedService,
   formData,
   onReset
 }) => {
@@ -27,10 +27,6 @@ const ConfirmationPage: React.FC<ConfirmationPageProps> = ({
     });
   };
 
-  const formatPrice = (price: number) => {
-    return price === 0 ? 'Free' : `$${price.toFixed(2)}`;
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50">
       <div className="max-w-2xl mx-auto px-4 py-20">
@@ -42,30 +38,20 @@ const ConfirmationPage: React.FC<ConfirmationPageProps> = ({
           <p className="text-gray-600 mb-6">Your meeting has been scheduled successfully.</p>
           
           <div className="bg-gray-50 rounded-lg p-6 mb-6">
-            <h3 className="font-semibold text-gray-900 mb-4">Meeting Details</h3>
+            <h3 className="font-semibold text-gray-900 mb-2">Meeting Details</h3>
             <div className="space-y-2 text-sm text-gray-600">
+              <p><strong>Service:</strong> {selectedService?.name}</p>
               <p><strong>Date:</strong> {formatDate(selectedDate)}</p>
               <p><strong>Time:</strong> {selectedTime}</p>
-              <p><strong>Total Duration:</strong> {selectedServices.totalDuration} minutes</p>
-              <p><strong>Total Price:</strong> {formatPrice(selectedServices.totalPrice)}</p>
+              <p><strong>Duration:</strong> {selectedService?.durationMin} minutes</p>
+              <p><strong>Price:</strong> {Number(selectedService?.price) === 0 ? 'Free' : selectedService?.price}</p>
               <p><strong>Attendee:</strong> {formData.name}</p>
               <p><strong>Email:</strong> {formData.email}</p>
-              {formData.message && (
-                <p><strong>Message:</strong> {formData.message}</p>
-              )}
             </div>
-            
-            {selectedServices.services.length > 0 && (
-              <div className="mt-4">
-                <h4 className="font-semibold text-gray-900 mb-2">Services:</h4>
-                <ul className="space-y-1 text-sm text-gray-600">
-                  {selectedServices.services.map((service) => (
-                    <li key={service.id} className="flex justify-between">
-                      <span>{service.name}</span>
-                      <span>{service.durationMin} min • {Number(service.price) === 0 ? 'Free' : service.price}</span>
-                    </li>
-                  ))}
-                </ul>
+            {formData.message && (
+              <div className="mt-4 pt-4 border-t border-gray-200">
+                <p className="text-sm text-gray-600"><strong>Message:</strong></p>
+                <p className="text-sm text-gray-600 mt-1">{formData.message}</p>
               </div>
             )}
           </div>

@@ -17,9 +17,6 @@ const SchedulingApp = () => {
     availabilityLoading,
   } = useSchedulingData();
 
-  const bookingState = useBookingState();
-  
-  // Destructure to avoid accidentally passing the whole object
   const {
     selectedDate,
     setSelectedDate,
@@ -31,14 +28,12 @@ const SchedulingApp = () => {
     setBookingStep,
     selectedService,
     setSelectedService,
-    selectedServices,
-    // setSelectedServices, // Commented out since not used
     formData,
     setFormData,
     formErrors,
     setFormErrors,
     resetBooking,
-  } = bookingState;
+  } = useBookingState();
 
   const handleDateSelect = (day: CalendarDay) => {
     setSelectedDate(day.date);
@@ -55,15 +50,14 @@ const SchedulingApp = () => {
         selectedDate={selectedDate}
         selectedTime={selectedTime}
         selectedService={selectedService}
-        selectedServices={selectedServices}
         formData={formData}
         onReset={resetBooking}
       />
     );
   }
 
-  // Show loading states or if services is not yet loaded
-  if (serviceLoading || settingsLoading || availabilityLoading || !services) {
+  // Show loading states
+  if (serviceLoading || settingsLoading || availabilityLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 flex items-center justify-center">
         <div className="text-center">
