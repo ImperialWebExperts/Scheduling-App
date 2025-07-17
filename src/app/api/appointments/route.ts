@@ -52,14 +52,14 @@ export async function POST(request: NextRequest) {
         clientPhone,
         notes,
         businessId,
-        appointmentServices: {
+        services: {
           create: serviceIds.map((serviceId: string) => ({
             serviceId
           }))
         }
       },
       include: {
-        appointmentServices: {
+        services: {
           include: {
             service: true
           }
@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
         durationMin: appointment.durationMin,
         clientName: appointment.clientName,
         clientEmail: appointment.clientEmail,
-        services: appointment.appointmentServices.map(as => as.service)
+        services: appointment.services.map(as => as.service)
       }
     });
 
@@ -92,7 +92,7 @@ export async function GET() {
         businessId: 'iwe',
       },
       include: {
-        appointmentServices: {
+        services: {
           include: {
             service: true
           }
@@ -112,7 +112,7 @@ export async function GET() {
       clientPhone: appointment.clientPhone,
       notes: appointment.notes,
       status: appointment.status,
-      services: appointment.appointmentServices.map(as => as.service)
+      services: appointment.services.map(as => as.service)
     }));
 
     return NextResponse.json(formattedAppointments);
