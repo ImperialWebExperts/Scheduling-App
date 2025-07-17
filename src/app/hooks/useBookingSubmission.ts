@@ -26,7 +26,6 @@ export const useBookingSubmission = () => {
       
       // Convert time to 24-hour format for API
       const time24 = convertTo24Hour(selectedTime);
-
       const response = await fetch('/api/appointments', {
         method: 'POST',
         headers: {
@@ -62,21 +61,27 @@ export const useBookingSubmission = () => {
   };
 
   // Helper function to convert 12-hour time to 24-hour format
-  const convertTo24Hour = (time12: string): string => {
-    const [time, modifier] = time12.split(' ');
-    let [hours] = time.split(':');
-    const [, minutes] = time.split(':');
-    
-    if (hours === '12') {
-      hours = '00';
+const convertTo24Hour = (time12: string): string => {
+  const [time, modifier] = time12.split(' ');
+  const [hours, minutes] = time.split(':');
+  
+  let hour24 = parseInt(hours, 10);
+  
+  if (modifier === 'AM') {
+    // For AM times: 12 AM becomes 00, all others stay the same
+    if (hour24 === 12) {
+      hour24 = 0;
     }
-    
-    if (modifier === 'PM') {
-      hours = (parseInt(hours, 10) + 12).toString();
+  } else if (modifier === 'PM') {
+    // For PM times: 12 PM stays 12, all others add 12
+    if (hour24 !== 12) {
+      hour24 += 12;
     }
-    
-    return `${hours.padStart(2, '0')}:${minutes}:00`;
-  };
+  }
+  
+  return `${hour24.toString().padStart(2, '0')}:${minutes}:00`;
+};
+
 
   return {
     submitBooking,
