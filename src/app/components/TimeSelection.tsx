@@ -1,9 +1,9 @@
 import React from 'react';
-import { Availability, SelectedServices } from '../types';
+import { Service, Availability } from '../types';
 import generateTimeSlots from '../lib/generateTimeSlots';
 
 interface TimeSelectionProps {
-  selectedServices: SelectedServices;
+  selectedService: Service | null;
   selectedDate: Date | null;
   availability: Availability[];
   onTimeSelect: (time: string) => void;
@@ -11,7 +11,7 @@ interface TimeSelectionProps {
 }
 
 const TimeSelection: React.FC<TimeSelectionProps> = ({
-  selectedServices,
+  selectedService,
   selectedDate,
   availability,
   onTimeSelect,
@@ -27,18 +27,12 @@ const TimeSelection: React.FC<TimeSelectionProps> = ({
     });
   };
 
-  const formatTotalPrice = () => {
-    return selectedServices.totalPrice === 0 ? 'Free' : `$${selectedServices.totalPrice}`;
-  };
-
   const getAvailableTimes = () => {
     if (!selectedDate) return [];
     
     return availability
       .filter(a => a.dayOfWeek === selectedDate.getDay())
-      .flatMap(({ startTime, endTime }) => 
-        generateTimeSlots(startTime, endTime, selectedServices.totalDuration)
-      );
+      .flatMap(({ startTime, endTime }) => generateTimeSlots(startTime, endTime));
   };
 
   return (
@@ -53,15 +47,10 @@ const TimeSelection: React.FC<TimeSelectionProps> = ({
       <div className="mb-6">
         <h2 className="text-2xl font-bold text-gray-900 mb-2">Select a Time</h2>
         <div className="bg-indigo-50 rounded-lg p-3 mb-4">
-          <p className="font-semibold text-indigo-900">
-            {selectedServices.services.length} Service{selectedServices.services.length > 1 ? 's' : ''} Selected
+          <p className="font-semibold text-indigo-900">{selectedService?.name}</p>
+          <p className="text-sm text-indigo-600">
+            {formatDate(selectedDate)} • {selectedService?.durationMin} min • {Number(selectedService?.price) === 0 ? 'Free' : selectedService?.price}
           </p>
-          <p className="text-sm text-indigo-600 mb-2">
-            {formatDate(selectedDate)} • {selectedServices.totalDuration} min • {formatTotalPrice()}
-          </p>
-          <div className="text-sm text-indigo-700">
-            {selectedServices.services.map(service => service.name).join(', ')}
-          </div>
         </div>
       </div>
       

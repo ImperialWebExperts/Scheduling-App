@@ -1,8 +1,8 @@
 import React from 'react';
-import { CalendarDay, Availability, Setting, SelectedServices } from '../types';
+import { Service, CalendarDay, Availability, Setting } from '../types';
 
 interface CalendarSelectionProps {
-  selectedServices: SelectedServices;
+  selectedService: Service | null;
   selectedDate: Date | null;
   currentMonth: Date;
   availability: Availability[];
@@ -13,7 +13,7 @@ interface CalendarSelectionProps {
 }
 
 const CalendarSelection: React.FC<CalendarSelectionProps> = ({
-  selectedServices,
+  selectedService,
   selectedDate,
   currentMonth,
   availability,
@@ -53,7 +53,7 @@ const CalendarSelection: React.FC<CalendarSelectionProps> = ({
     const maxDate = getMaxDate();
 
     const closedDayNumbers = availability
-      .filter(a => a.startTime === 'Close')
+      .filter(a => a.startTime === 'Closed')
       .map(a => a.dayOfWeek);
 
     for (let i = 0; i < 42; i++) {
@@ -90,10 +90,6 @@ const CalendarSelection: React.FC<CalendarSelectionProps> = ({
     return prevMonth.getMonth() >= today.getMonth() && prevMonth.getFullYear() >= today.getFullYear();
   };
 
-  const formatTotalPrice = () => {
-    return selectedServices.totalPrice === 0 ? 'Free' : `$${selectedServices.totalPrice}`;
-  };
-
   const days = generateCalendar();
 
   return (
@@ -110,19 +106,12 @@ const CalendarSelection: React.FC<CalendarSelectionProps> = ({
         <p className="mb-2 text-[#23508e]">
           Plan ahead—appointments are available up to {settings?.maxAdvanceDays || 3} months in advance!
         </p>
-        <div className="bg-indigo-50 rounded-lg p-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-semibold text-indigo-900">
-                {selectedServices.services.length} Service{selectedServices.services.length > 1 ? 's' : ''} Selected
-              </p>
-              <p className="text-sm text-indigo-600">
-                {selectedServices.totalDuration} min • {formatTotalPrice()}
-              </p>
-            </div>
-          </div>
-          <div className="mt-2 text-sm text-indigo-700">
-            {selectedServices.services.map(service => service.name).join(', ')}
+        <div className="bg-indigo-50 rounded-lg p-3 flex items-center justify-between">
+          <div>
+            <p className="font-semibold text-indigo-900">{selectedService?.name}</p>
+            <p className="text-sm text-indigo-600">
+              {selectedService?.durationMin} min • {Number(selectedService?.price) === 0 ? 'Free' : selectedService?.price}
+            </p>
           </div>
         </div>
       </div>

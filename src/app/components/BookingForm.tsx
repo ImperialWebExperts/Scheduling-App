@@ -1,9 +1,9 @@
 import React from 'react';
 import { ArrowRight } from 'lucide-react';
-import { BookingFormData, FormErrors, SelectedServices } from '../types';
+import { Service, BookingFormData, FormErrors } from '../types';
 
 interface BookingFormProps {
-  selectedServices: SelectedServices;
+  selectedService: Service | null;
   selectedDate: Date | null;
   selectedTime: string | null;
   formData: BookingFormData;
@@ -12,12 +12,10 @@ interface BookingFormProps {
   onFormErrorsChange: (errors: FormErrors) => void;
   onSubmit: () => void;
   onBack: () => void;
-  isSubmitting?: boolean;
-  submitError?: string | null;
 }
 
 const BookingForm: React.FC<BookingFormProps> = ({
-  selectedServices,
+  selectedService,
   selectedDate,
   selectedTime,
   formData,
@@ -25,9 +23,7 @@ const BookingForm: React.FC<BookingFormProps> = ({
   onFormDataChange,
   onFormErrorsChange,
   onSubmit,
-  onBack,
-  isSubmitting = false,
-  submitError = null
+  onBack
 }) => {
   const formatDate = (date: Date | null) => {
     if (!date) return '';
@@ -37,10 +33,6 @@ const BookingForm: React.FC<BookingFormProps> = ({
       month: 'long',
       day: 'numeric'
     });
-  };
-
-  const formatTotalPrice = () => {
-    return selectedServices.totalPrice === 0 ? 'Free' : `$${selectedServices.totalPrice}`;
   };
 
   const validateEmail = (email: string): boolean => {
@@ -97,19 +89,14 @@ const BookingForm: React.FC<BookingFormProps> = ({
       <div className="bg-gray-50 rounded-lg p-4 mb-6">
         <div className="flex justify-between items-start mb-2">
           <div>
-            <p className="font-semibold text-gray-900">
-              {selectedServices.services.length} Service{selectedServices.services.length > 1 ? 's' : ''}
-            </p>
-            <p className="text-sm text-gray-600 mb-1">{formatDate(selectedDate)} at {selectedTime}</p>
-            <div className="text-sm text-gray-600">
-              {selectedServices.services.map(service => service.name).join(', ')}
-            </div>
+            <p className="font-semibold text-gray-900">{selectedService?.name}</p>
+            <p className="text-sm text-gray-600">{formatDate(selectedDate)} at {selectedTime}</p>
           </div>
           <div className="text-right">
             <p className="font-semibold text-gray-900">
-              {formatTotalPrice()}
+              {Number(selectedService?.price) === 0 ? 'Free' : selectedService?.price}
             </p>
-            <p className="text-sm text-gray-600">{selectedServices.totalDuration} min</p>
+            <p className="text-sm text-gray-600">{selectedService?.durationMin}</p>
           </div>
         </div>
       </div>
@@ -168,32 +155,12 @@ const BookingForm: React.FC<BookingFormProps> = ({
           />
         </div>
         
-        {submitError && (
-          <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-sm text-red-800">{submitError}</p>
-          </div>
-        )}
-        
         <button
           onClick={handleSubmit}
-          disabled={isSubmitting}
-          className={`cursor-pointer w-full py-3 rounded-lg font-semibold transition-colors flex items-center justify-center space-x-2 ${
-            isSubmitting 
-              ? 'bg-gray-400 text-gray-600 cursor-not-allowed' 
-              : 'bg-indigo-600 text-white hover:bg-indigo-700'
-          }`}
+          className="cursor-pointer w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 transition-colors flex items-center justify-center space-x-2"
         >
-          {isSubmitting ? (
-            <>
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-              <span>Creating Booking...</span>
-            </>
-          ) : (
-            <>
-              <span>Confirm Booking</span>
-              <ArrowRight className="w-4 h-4" />
-            </>
-          )}
+          <span>Confirm Booking</span>
+          <ArrowRight className="w-4 h-4" />
         </button>
       </div>
     </div>
