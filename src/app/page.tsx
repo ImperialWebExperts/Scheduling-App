@@ -7,7 +7,7 @@ import { useBookingSubmission } from './hooks/useBookingSubmission';
 import InfoPanel from './components/InfoPanel';
 import BookingInterface from './components/BookingInterface';
 import ConfirmationPage from './components/ConfirmationPage';
-import { CalendarDay } from './types';
+import { CalendarDay, Service } from './types';
 
 const SchedulingApp = () => {
   const {
@@ -31,9 +31,8 @@ const SchedulingApp = () => {
     setCurrentMonth,
     bookingStep,
     setBookingStep,
-    selectedService,
-    setSelectedService,
     selectedServices,
+    setSelectedServices,
     formData,
     setFormData,
     formErrors,
@@ -41,23 +40,28 @@ const SchedulingApp = () => {
     resetBooking,
   } = useBookingState();
 
-  const { submitBooking, isSubmitting } = useBookingSubmission();
+  const { submitBooking } = useBookingSubmission();
 
   const handleDateSelect = (day: CalendarDay) => {
     setSelectedDate(day.date);
   };
 
-  const handleSubmit = async () => {
-    if (!selectedService) return;
+  const handleServiceToggle = (service: Service) => {
+    const isSelected = selectedServices.services.some(s => s.id === service.id);
     
-    // Create a selectedServices object with the single selected service
-    const servicesToSubmit = {
-      services: [selectedService],
-      totalDuration: parseInt(selectedService.durationMin),
-      totalPrice: parseFloat(selectedService.price)
-    };
+    if (isSelected) {
+      // Remove service
+      setSelectedServices(selectedServices.services.filter(s => s.id !== service.id));
+    } else {
+      // Add service
+      setSelectedServices([...selectedServices.services, service]);
+    }
+  };
 
-    const success = await submitBooking(servicesToSubmit, selectedDate, selectedTime, formData);
+  const handleSubmit = async () => {
+    if (selectedServices.services.length === 0) return;
+    
+    const success = await submitBooking(selectedServices, selectedDate, selectedTime, formData);
     
     if (success) {
       setBookingStep('confirmation');
@@ -72,7 +76,7 @@ const SchedulingApp = () => {
       <ConfirmationPage
         selectedDate={selectedDate}
         selectedTime={selectedTime}
-        selectedService={selectedService}
+        selectedServices={selectedServices}
         formData={formData}
         onReset={resetBooking}
       />
@@ -96,13 +100,13 @@ const SchedulingApp = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-12">
         <div className="grid lg:grid-cols-2 gap-12 items-start">
           {/* Left Column - Info */}
-          <InfoPanel selectedService={selectedService} />
+          <InfoPanel selectedServices={selectedServices} />
 
           {/* Right Column - Booking Interface */}
           <BookingInterface
             bookingStep={bookingStep}
             services={services}
-            selectedService={selectedService}
+            selectedServices={selectedServices}
             selectedDate={selectedDate}
             selectedTime={selectedTime}
             currentMonth={currentMonth}
@@ -111,7 +115,7 @@ const SchedulingApp = () => {
             settings={settings}
             formData={formData}
             formErrors={formErrors}
-            onServiceSelect={setSelectedService}
+            onServiceToggle={handleServiceToggle}
             onDateSelect={handleDateSelect}
             onTimeSelect={setSelectedTime}
             onMonthChange={setCurrentMonth}
