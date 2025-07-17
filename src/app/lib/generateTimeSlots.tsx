@@ -14,7 +14,8 @@ function generateTimeSlots(
     date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
   const parseTime = (timeStr: string) => {
-    const match = timeStr.match(/^(\d{1,2}):(\d{2})\s?(AM|PM)$/i);
+    // Handle both "HH:MM AM/PM" and "HH:MM" formats
+    const match = timeStr.match(/^(\d{1,2}):(\d{2})(?:\s?(AM|PM))?$/i);
     if (!match) {
         throw new Error(`Invalid time format: ${timeStr}`);
     }
@@ -23,8 +24,11 @@ function generateTimeSlots(
     let hour = parseInt(hourStr, 10);
     const minute = parseInt(minuteStr, 10);
 
-    if (period.toUpperCase() === 'PM' && hour !== 12) hour += 12;
-    if (period.toUpperCase() === 'AM' && hour === 12) hour = 0;
+    // Only apply AM/PM logic if period is present
+    if (period) {
+      if (period.toUpperCase() === 'PM' && hour !== 12) hour += 12;
+      if (period.toUpperCase() === 'AM' && hour === 12) hour = 0;
+    }
 
     const date = new Date();
     date.setHours(hour, minute, 0, 0);
