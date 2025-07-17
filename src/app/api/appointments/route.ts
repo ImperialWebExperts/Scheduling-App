@@ -19,7 +19,6 @@ export async function POST(request: NextRequest) {
     if (!serviceIds || !Array.isArray(serviceIds) || serviceIds.length === 0) {
       return NextResponse.json({ error: 'At least one service must be selected' }, { status: 400 });
     }
-
     if (!date || !time || !clientName || !clientEmail) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
@@ -38,14 +37,9 @@ export async function POST(request: NextRequest) {
 
     // Calculate total duration
     const totalDuration = services.reduce((sum, service) => sum + service.durationMin, 0);
-
-    // Create appointment datetime - FIXED VERSION
-    // Parse the time components
-    const [hours, minutes] = time.split(':').map(Number);
     
     // Create date object and set the time explicitly
-    const appointmentDate = new Date(date);
-    appointmentDate.setHours(hours, minutes, 0, 0);
+    const appointmentDate = new Date(`${date}T${time}Z`);
     
     // Log for debugging
     console.log('Input date:', date);
