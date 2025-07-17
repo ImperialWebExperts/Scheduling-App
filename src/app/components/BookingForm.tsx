@@ -9,7 +9,6 @@ interface BookingFormProps {
   formData: BookingFormData;
   formErrors: FormErrors;
   isSubmitting?: boolean;
-  submitError?: string | null;
   onFormDataChange: (data: BookingFormData) => void;
   onFormErrorsChange: (errors: FormErrors) => void;
   onSubmit: () => void;
@@ -23,7 +22,6 @@ const BookingForm: React.FC<BookingFormProps> = ({
   formData,
   formErrors,
   isSubmitting = false,
-  submitError = null,
   onFormDataChange,
   onFormErrorsChange,
   onSubmit,
@@ -84,7 +82,9 @@ const BookingForm: React.FC<BookingFormProps> = ({
       <button
         onClick={onBack}
         disabled={isSubmitting}
-        className="flex items-center text-indigo-600 hover:text-indigo-800 mb-6 transition-colors disabled:opacity-50"
+        className={`flex items-center text-indigo-600 hover:text-indigo-800 mb-6 transition-colors ${
+          isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
+        }`}
       >
         ← Back to time selection
       </button>
@@ -101,16 +101,10 @@ const BookingForm: React.FC<BookingFormProps> = ({
             <p className="font-semibold text-gray-900">
               {Number(selectedService?.price) === 0 ? 'Free' : selectedService?.price}
             </p>
-            <p className="text-sm text-gray-600">{selectedService?.durationMin}</p>
+            <p className="text-sm text-gray-600">{selectedService?.durationMin} min</p>
           </div>
         </div>
       </div>
-
-      {submitError && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-          <p className="text-sm text-red-600">{submitError}</p>
-        </div>
-      )}
       
       <div className="space-y-4">
         <div>
@@ -122,7 +116,9 @@ const BookingForm: React.FC<BookingFormProps> = ({
             value={formData.name}
             onChange={(e) => handleInputChange('name', e.target.value)}
             disabled={isSubmitting}
-            className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-[#23508e] disabled:opacity-50 disabled:cursor-not-allowed ${
+            className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-[#23508e] ${
+              isSubmitting ? 'bg-gray-100 cursor-not-allowed' : ''
+            } ${
               formErrors.name 
                 ? 'border-red-500 focus:border-red-500' 
                 : 'border-gray-300 focus:border-indigo-500'
@@ -143,7 +139,9 @@ const BookingForm: React.FC<BookingFormProps> = ({
             value={formData.email}
             onChange={(e) => handleInputChange('email', e.target.value)}
             disabled={isSubmitting}
-            className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-[#23508e] disabled:opacity-50 disabled:cursor-not-allowed ${
+            className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-[#23508e] ${
+              isSubmitting ? 'bg-gray-100 cursor-not-allowed' : ''
+            } ${
               formErrors.email 
                 ? 'border-red-500 focus:border-red-500' 
                 : 'border-gray-300 focus:border-indigo-500'
@@ -164,7 +162,9 @@ const BookingForm: React.FC<BookingFormProps> = ({
             onChange={(e) => handleInputChange('message', e.target.value)}
             disabled={isSubmitting}
             rows={4}
-            className="text-[#23508e] w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            className={`text-[#23508e] w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${
+              isSubmitting ? 'bg-gray-100 cursor-not-allowed' : ''
+            }`}
             placeholder="Tell me about your project or what you'd like to discuss..."
           />
         </div>
@@ -172,7 +172,11 @@ const BookingForm: React.FC<BookingFormProps> = ({
         <button
           onClick={handleSubmit}
           disabled={isSubmitting}
-          className="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 transition-colors flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          className={`w-full py-3 rounded-lg font-semibold transition-colors flex items-center justify-center space-x-2 ${
+            isSubmitting
+              ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
+              : 'bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer'
+          }`}
         >
           {isSubmitting ? (
             <>

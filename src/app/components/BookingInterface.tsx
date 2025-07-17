@@ -68,6 +68,13 @@ const BookingInterface: React.FC<BookingInterfaceProps> = ({
 
   return (
     <div className="bg-white rounded-2xl shadow-2xl p-8">
+      {/* Error Message */}
+      {submitError && (
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+          <p className="text-red-600 text-sm">{submitError}</p>
+        </div>
+      )}
+
       {bookingStep === 'services' && (
         <ServiceSelection
           services={services}
@@ -106,7 +113,6 @@ const BookingInterface: React.FC<BookingInterfaceProps> = ({
           formData={formData}
           formErrors={formErrors}
           isSubmitting={isSubmitting}
-          submitError={submitError}
           onFormDataChange={onFormDataChange}
           onFormErrorsChange={onFormErrorsChange}
           onSubmit={onSubmit}
