@@ -39,10 +39,21 @@ export async function POST(request: NextRequest) {
     // Calculate total duration
     const totalDuration = services.reduce((sum, service) => sum + service.durationMin, 0);
 
-    // Create appointment datetime
-    const appointmentDate = new Date(`${date}T${time}`);
+    // Create appointment datetime - FIXED VERSION
+    // Parse the time components
+    const [hours, minutes] = time.split(':').map(Number);
+    
+    // Create date object and set the time explicitly
+    const appointmentDate = new Date(date);
+    appointmentDate.setHours(hours, minutes, 0, 0);
+    
+    // Log for debugging
+    console.log('Input date:', date);
+    console.log('Input time:', time);
+    console.log('Created appointmentDate:', appointmentDate);
+    console.log('Appointment date ISO:', appointmentDate.toISOString());
 
-    // Create the appointment with services using nested create
+    // Create the appointment with associated services
     const appointment = await prisma.appointment.create({
       data: {
         date: appointmentDate,
