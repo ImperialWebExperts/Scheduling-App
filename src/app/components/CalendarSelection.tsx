@@ -1,5 +1,5 @@
 import React from 'react';
-import { CalendarDay, Availability, Setting, SelectedServices, Appointment } from '../types';
+import { CalendarDay, Availability, Setting, SelectedServices } from '../types';
 import generateTimeSlots from '../lib/generateTimeSlots';
 
 interface CalendarSelectionProps {
@@ -7,7 +7,6 @@ interface CalendarSelectionProps {
   selectedDate: Date | null;
   currentMonth: Date;
   availability: Availability[];
-  existingAppointments: Appointment[];
   settings: Setting | undefined;
   onDateSelect: (day: CalendarDay) => void;
   onMonthChange: (month: Date) => void;
@@ -19,7 +18,6 @@ const CalendarSelection: React.FC<CalendarSelectionProps> = ({
   selectedDate,
   currentMonth,
   availability,
-  existingAppointments,
   settings,
   onDateSelect,
   onMonthChange,
@@ -52,7 +50,7 @@ const CalendarSelection: React.FC<CalendarSelectionProps> = ({
       .filter(a => a.dayOfWeek === date.getDay())
       .filter(a => a.startTime !== 'Close')
       .flatMap(({ startTime, endTime }) => 
-        generateTimeSlots(startTime, endTime, totalDuration, date, existingAppointments)
+        generateTimeSlots(startTime, endTime, totalDuration, date)
       );
     
     return slots.length;

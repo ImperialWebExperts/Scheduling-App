@@ -5,8 +5,8 @@ import { useSchedulingData } from './hooks/useSchedulingData';
 import { useBookingState } from './hooks/useBookingState';
 import { useBookingSubmission } from './hooks/useBookingSubmission';
 import InfoPanel from './components/InfoPanel';
-import ConfirmationPage from './components/ConfirmationPage';
 import BookingInterface from './components/BookingInterface';
+import ConfirmationPage from './components/ConfirmationPage';
 import { CalendarDay, Service } from './types';
 
 const SchedulingApp = () => {
@@ -40,27 +40,19 @@ const SchedulingApp = () => {
     resetBooking,
   } = useBookingState();
 
-  const { submitBooking, isSubmitting, submitError } = useBookingSubmission();
-
-  const handleServiceToggle = (service: Service) => {
-    const isSelected = selectedServices.services.some(s => s.id === service.id);
-    
-    if (isSelected) {
-      // Remove service
-      const updatedServices = selectedServices.services.filter(s => s.id !== service.id);
-      setSelectedServices(updatedServices);
-    } else {
-      // Add service
-      const updatedServices = [...selectedServices.services, service];
-      setSelectedServices(updatedServices);
-    }
-  };
+  const { submitBooking, isSubmitting } = useBookingSubmission();
 
   const handleDateSelect = (day: CalendarDay) => {
     setSelectedDate(day.date);
   };
 
+  const handleServicesChange = (services: Service[]) => {
+    setSelectedServices(services);
+  };
+
   const handleSubmit = async () => {
+    if (selectedServices.services.length === 0) return;
+    
     const success = await submitBooking(selectedServices, selectedDate, selectedTime, formData);
     
     if (success) {
@@ -90,6 +82,7 @@ const SchedulingApp = () => {
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading scheduling data...</p>
+          {isSubmitting && <p className="text-sm text-indigo-600 mt-2">Creating your appointment...</p>}
         </div>
       </div>
     );
@@ -115,8 +108,7 @@ const SchedulingApp = () => {
             settings={settings}
             formData={formData}
             formErrors={formErrors}
-            onServiceToggle={handleServiceToggle}
-            onServicesContinue={() => setBookingStep('calendar')}
+            onServicesChange={handleServicesChange}
             onDateSelect={handleDateSelect}
             onTimeSelect={setSelectedTime}
             onMonthChange={setCurrentMonth}
@@ -125,23 +117,6 @@ const SchedulingApp = () => {
             onSubmit={handleSubmit}
             onStepChange={setBookingStep}
           />
-
-          {/* Show submission error if any */}
-          {submitError && (
-            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-sm text-red-600">{submitError}</p>
-            </div>
-          )}
-
-          {/* Show loading state during submission */}
-          {isSubmitting && (
-            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <div className="flex items-center space-x-2">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                <p className="text-sm text-blue-600">Submitting your booking...</p>
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>

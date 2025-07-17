@@ -1,6 +1,6 @@
 // src/app/components/TimeSelection.tsx
 import React from 'react';
-import {  Availability, Appointment, SelectedServices } from '../types';
+import { SelectedServices, Availability, Appointment } from '../types';
 import generateTimeSlots from '../lib/generateTimeSlots';
 
 interface TimeSelectionProps {
@@ -38,21 +38,12 @@ const TimeSelection: React.FC<TimeSelectionProps> = ({
     
     return availability
       .filter(a => a.dayOfWeek === selectedDate.getDay())
-      .filter(a => a.startTime !== 'Close') // Filter out closed days
       .flatMap(({ startTime, endTime }) => 
         generateTimeSlots(startTime, endTime, totalDuration, selectedDate, existingAppointments)
       );
   };
 
   const availableTimes = getAvailableTimes();
-
-  // Check if the day is closed
-  const isDayClosed = () => {
-    if (!selectedDate) return false;
-    return availability
-      .filter(a => a.dayOfWeek === selectedDate.getDay())
-      .some(a => a.startTime === 'Close');
-  };
 
   return (
     <div>
@@ -70,14 +61,16 @@ const TimeSelection: React.FC<TimeSelectionProps> = ({
             {selectedServices.services.length} Service{selectedServices.services.length !== 1 ? 's' : ''} Selected
           </p>
           <p className="text-sm text-indigo-600">
-            {formatDate(selectedDate)} • {selectedServices.totalDuration} min total • {selectedServices.totalPrice === 0 ? 'Free' : `$${selectedServices.totalPrice.toFixed(2)}`}
+            {formatDate(selectedDate)} • {selectedServices.totalDuration} min • {selectedServices.totalPrice === 0 ? 'Free' : `$${selectedServices.totalPrice.toFixed(2)}`}
           </p>
+          
+          {/* Show service breakdown */}
           {selectedServices.services.length > 1 && (
             <div className="mt-2 pt-2 border-t border-indigo-200">
-              <p className="text-xs text-indigo-700 font-medium">Services:</p>
+              <p className="text-xs text-indigo-700 font-medium mb-1">Services:</p>
               <div className="space-y-1">
                 {selectedServices.services.map((service) => (
-                  <div key={service.id} className="flex justify-between text-xs text-indigo-600">
+                  <div key={service.id} className="flex justify-between items-center text-xs text-indigo-600">
                     <span>{service.name}</span>
                     <span>{service.durationMin} min</span>
                   </div>
@@ -88,35 +81,23 @@ const TimeSelection: React.FC<TimeSelectionProps> = ({
         </div>
       </div>
       
-      {isDayClosed() ? (
-        <div className="text-center py-8">
-          <p className="text-gray-500 mb-4">We&apos;re closed on this day</p>
-          <p className="text-sm text-gray-400">
-            Please select a different date
-          </p>
-        </div>
-      ) : availableTimes.length > 0 ? (
-        <div>
-          <p className="text-sm text-gray-600 mb-4">
-            Available time slots for {selectedServices.totalDuration} minute appointment:
-          </p>
-          <div className="grid grid-cols-2 gap-3">
-            {availableTimes.map(time => (
-              <button
-                key={time}
-                onClick={() => onTimeSelect(time)}
-                className="text-[#23508e] p-3 border border-gray-200 rounded-lg hover:bg-indigo-50 hover:border-indigo-300 transition-all duration-200 text-center"
-              >
-                {time}
-              </button>
-            ))}
-          </div>
+      {availableTimes.length > 0 ? (
+        <div className="grid grid-cols-2 gap-3">
+          {availableTimes.map(time => (
+            <button
+              key={time}
+              onClick={() => onTimeSelect(time)}
+              className="text-[#23508e] p-3 border border-gray-200 rounded-lg hover:bg-indigo-50 hover:border-indigo-300 transition-all duration-200 text-center"
+            >
+              {time}
+            </button>
+          ))}
         </div>
       ) : (
         <div className="text-center py-8">
           <p className="text-gray-500 mb-4">No available times for this date</p>
           <p className="text-sm text-gray-400">
-            All time slots are booked or the appointment duration ({selectedServices.totalDuration} min) doesn&apos;t fit in the available windows. Please select a different date or try fewer services.
+            Please select a different date. The total duration of your selected services ({selectedServices.totalDuration} min) may require a longer available time slot.
           </p>
         </div>
       )}

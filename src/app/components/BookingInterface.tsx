@@ -18,8 +18,7 @@ interface BookingInterfaceProps {
   settings: Setting | undefined;
   formData: BookingFormData;
   formErrors: FormErrors;
-  onServiceToggle: (service: Service) => void;
-  onServicesContinue: () => void;
+  onServicesChange: (services: Service[]) => void;
   onDateSelect: (day: CalendarDay) => void;
   onTimeSelect: (time: string) => void;
   onMonthChange: (month: Date) => void;
@@ -41,8 +40,7 @@ const BookingInterface: React.FC<BookingInterfaceProps> = ({
   settings,
   formData,
   formErrors,
-  onServiceToggle,
-  onServicesContinue,
+  onServicesChange,
   onDateSelect,
   onTimeSelect,
   onMonthChange,
@@ -51,6 +49,27 @@ const BookingInterface: React.FC<BookingInterfaceProps> = ({
   onSubmit,
   onStepChange
 }) => {
+  const handleServiceToggle = (service: Service) => {
+    const isSelected = selectedServices.services.some(s => s.id === service.id);
+    let newServices: Service[];
+    
+    if (isSelected) {
+      // Remove service
+      newServices = selectedServices.services.filter(s => s.id !== service.id);
+    } else {
+      // Add service
+      newServices = [...selectedServices.services, service];
+    }
+    
+    onServicesChange(newServices);
+  };
+
+  const handleContinue = () => {
+    if (selectedServices.services.length > 0) {
+      onStepChange('calendar');
+    }
+  };
+
   const handleDateSelect = (day: CalendarDay) => {
     if (day.isPast || !day.isCurrentMonth || day.isBeyondLimit || day.isClosed) return;
     onDateSelect(day);
@@ -68,8 +87,8 @@ const BookingInterface: React.FC<BookingInterfaceProps> = ({
         <ServiceSelection
           services={services}
           selectedServices={selectedServices.services}
-          onServiceToggle={onServiceToggle}
-          onContinue={onServicesContinue}
+          onServiceToggle={handleServiceToggle}
+          onContinue={handleContinue}
         />
       )}
 
@@ -79,7 +98,6 @@ const BookingInterface: React.FC<BookingInterfaceProps> = ({
           selectedDate={selectedDate}
           currentMonth={currentMonth}
           availability={availability}
-          existingAppointments={existingAppointments}
           settings={settings}
           onDateSelect={handleDateSelect}
           onMonthChange={onMonthChange}
