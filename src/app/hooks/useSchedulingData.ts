@@ -1,5 +1,6 @@
+// src/app/hooks/useSchedulingData.ts
 import { useState, useEffect } from 'react';
-import { Service, Setting, Availability } from '../types';
+import { Service, Setting, Availability, Appointment, AppointmentResponse } from '../types';
 
 export const useSchedulingData = () => {
   const [services, setServices] = useState<Service[]>([]);
@@ -8,6 +9,8 @@ export const useSchedulingData = () => {
   const [settingsLoading, setSettingsLoading] = useState(true);
   const [availability, setAvailability] = useState<Availability[]>([]);
   const [availabilityLoading, setAvailabilityLoading] = useState(true);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [appointmentsLoading, setAppointmentsLoading] = useState(true);
 
   useEffect(() => {
     const fetchServices = async () => {
@@ -46,10 +49,46 @@ export const useSchedulingData = () => {
       }
     };
 
+    const fetchAppointments = async () => {
+      try {
+        const res = await fetch('/api/appointments');
+        const data = await res.json();
+        // Convert date strings to Date objects
+        const appointmentsWithDates = data.map((appointment: AppointmentResponse) => ({
+          ...appointment,
+          date: new Date(appointment.date)
+        }));
+        setAppointments(appointmentsWithDates);
+      } catch (error) {
+        console.error('Failed to load appointments:', error);
+      } finally {
+        setAppointmentsLoading(false);
+      }
+    };
+
     fetchServices();
     fetchSettings();
     fetchAvailability();
+    fetchAppointments();
   }, []);
+
+  // Function to refresh appointments after booking
+  const refreshAppointments = async () => {
+    setAppointmentsLoading(true);
+    try {
+      const res = await fetch('/api/appointments');
+      const data = await res.json();
+      const appointmentsWithDates = data.map((appointment: AppointmentResponse) => ({
+        ...appointment,
+        date: new Date(appointment.date)
+      }));
+      setAppointments(appointmentsWithDates);
+    } catch (error) {
+      console.error('Failed to refresh appointments:', error);
+    } finally {
+      setAppointmentsLoading(false);
+    }
+  };
 
   return {
     services,
@@ -58,5 +97,8 @@ export const useSchedulingData = () => {
     settingsLoading,
     availability,
     availabilityLoading,
+    appointments,
+    appointmentsLoading,
+    refreshAppointments,
   };
 };

@@ -1,19 +1,22 @@
+// src/app/components/TimeSelection.tsx
 import React from 'react';
-import { SelectedServices, Availability } from '../types';
+import { Service, Availability, Appointment } from '../types';
 import generateTimeSlots from '../lib/generateTimeSlots';
 
 interface TimeSelectionProps {
-  selectedServices: SelectedServices | null;
+  selectedService: Service | null;
   selectedDate: Date | null;
   availability: Availability[];
+  existingAppointments: Appointment[];
   onTimeSelect: (time: string) => void;
   onBack: () => void;
 }
 
 const TimeSelection: React.FC<TimeSelectionProps> = ({
-  selectedServices,
+  selectedService,
   selectedDate,
   availability,
+  existingAppointments,
   onTimeSelect,
   onBack
 }) => {
@@ -28,39 +31,15 @@ const TimeSelection: React.FC<TimeSelectionProps> = ({
   };
 
   const getAvailableTimes = () => {
-    if (!selectedDate) return [];
+    if (!selectedDate || !selectedService) return [];
     
-    const dayOfWeek = selectedDate.getDay();
-    // Use a default duration if no service is selected
-    const serviceDuration = selectedServices && selectedServices.services.length > 0 
-      ? parseInt(selectedServices.services[0].durationMin) 
-      : 30;
+    const serviceDuration = parseInt(selectedService.durationMin);
     
-    // Get all availability slots for this day
-    const dayAvailability = availability.filter(a => a.dayOfWeek === dayOfWeek);
-    console.log(dayAvailability)
-    // Generate time slots for each availability period and combine them
-    const allSlots: string[] = [];
-    
-    dayAvailability.forEach(({ startTime, endTime }) => {
-      // Skip if it's marked as closed
-      if (startTime === 'Closed' || endTime === 'Closed') return;
-      
-      const slots = generateTimeSlots(startTime, endTime, serviceDuration);
-      allSlots.push(...slots);
-    });
-    
-    // Remove duplicates and sort
-    const uniqueSlots = [...new Set(allSlots)];
-    
-    // Sort the time slots chronologically
-    uniqueSlots.sort((a, b) => {
-      const timeA = new Date(`1970/01/01 ${a}`);
-      const timeB = new Date(`1970/01/01 ${b}`);
-      return timeA.getTime() - timeB.getTime();
-    });
-    
-    return uniqueSlots;
+    return availability
+      .filter(a => a.dayOfWeek === selectedDate.getDay())
+      .flatMap(({ startTime, endTime }) => 
+        generateTimeSlots(startTime, endTime, serviceDuration, selectedDate, existingAppointments)
+      );
   };
 
   const availableTimes = getAvailableTimes();
@@ -77,20 +56,14 @@ const TimeSelection: React.FC<TimeSelectionProps> = ({
       <div className="mb-6">
         <h2 className="text-2xl font-bold text-gray-900 mb-2">Select a Time</h2>
         <div className="bg-indigo-50 rounded-lg p-3 mb-4">
-          <p className="font-semibold text-indigo-900">
-            {selectedServices?.services[0]?.name || 'Service'}
-          </p>
+          <p className="font-semibold text-indigo-900">{selectedService?.name}</p>
           <p className="text-sm text-indigo-600">
-            {formatDate(selectedDate)} • {selectedServices?.totalDuration || 0} min • {selectedServices?.totalPrice === 0 ? 'Free' : `${selectedServices?.totalPrice || 0}`}
+            {formatDate(selectedDate)} • {selectedService?.durationMin} min • {Number(selectedService?.price) === 0 ? 'Free' : selectedService?.price}
           </p>
         </div>
       </div>
       
-      {availableTimes.length === 0 ? (
-        <div className="text-center py-8">
-          <p className="text-gray-500">No available times for this date.</p>
-        </div>
-      ) : (
+      {availableTimes.length > 0 ? (
         <div className="grid grid-cols-2 gap-3">
           {availableTimes.map(time => (
             <button
@@ -101,6 +74,13 @@ const TimeSelection: React.FC<TimeSelectionProps> = ({
               {time}
             </button>
           ))}
+        </div>
+      ) : (
+        <div className="text-center py-8">
+          <p className="text-gray-500 mb-4">No available times for this date</p>
+          <p className="text-sm text-gray-400">
+            Please select a different date or try a shorter service duration
+          </p>
         </div>
       )}
     </div>

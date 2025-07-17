@@ -1,3 +1,4 @@
+// src/app/page.tsx
 'use client';
 import React from 'react';
 import { useSchedulingData } from './hooks/useSchedulingData';
@@ -6,7 +7,7 @@ import { useBookingSubmission } from './hooks/useBookingSubmission';
 import InfoPanel from './components/InfoPanel';
 import BookingInterface from './components/BookingInterface';
 import ConfirmationPage from './components/ConfirmationPage';
-import { CalendarDay, Service } from './types';
+import { CalendarDay } from './types';
 
 const SchedulingApp = () => {
   const {
@@ -16,6 +17,9 @@ const SchedulingApp = () => {
     settingsLoading,
     availability,
     availabilityLoading,
+    appointments,
+    appointmentsLoading,
+    refreshAppointments,
   } = useSchedulingData();
 
   const {
@@ -27,8 +31,9 @@ const SchedulingApp = () => {
     setCurrentMonth,
     bookingStep,
     setBookingStep,
+    selectedService,
+    setSelectedService,
     selectedServices,
-    setSelectedServices,
     formData,
     setFormData,
     formErrors,
@@ -36,30 +41,28 @@ const SchedulingApp = () => {
     resetBooking,
   } = useBookingState();
 
-  const { submitBooking, isSubmitting, submitError } = useBookingSubmission();
+  const { submitBooking, isSubmitting } = useBookingSubmission();
 
   const handleDateSelect = (day: CalendarDay) => {
     setSelectedDate(day.date);
   };
 
-  const handleServiceToggle = (service: Service) => {
-    const isCurrentlySelected = selectedServices.services.some(s => s.id === service.id);
-    
-    if (isCurrentlySelected) {
-      // Remove service
-      const updatedServices = selectedServices.services.filter(s => s.id !== service.id);
-      setSelectedServices(updatedServices);
-    } else {
-      // Add service
-      const updatedServices = [...selectedServices.services, service];
-      setSelectedServices(updatedServices);
-    }
-  };
-
   const handleSubmit = async () => {
-    const success = await submitBooking(selectedServices, selectedDate, selectedTime, formData);
+    if (!selectedService) return;
+    
+    // Create a selectedServices object with the single selected service
+    const servicesToSubmit = {
+      services: [selectedService],
+      totalDuration: parseInt(selectedService.durationMin),
+      totalPrice: parseFloat(selectedService.price)
+    };
+
+    const success = await submitBooking(servicesToSubmit, selectedDate, selectedTime, formData);
+    
     if (success) {
       setBookingStep('confirmation');
+      // Refresh appointments to update available times
+      await refreshAppointments();
     }
   };
 
@@ -69,7 +72,7 @@ const SchedulingApp = () => {
       <ConfirmationPage
         selectedDate={selectedDate}
         selectedTime={selectedTime}
-        selectedServices={selectedServices}
+        selectedService={selectedService}
         formData={formData}
         onReset={resetBooking}
       />
@@ -77,7 +80,7 @@ const SchedulingApp = () => {
   }
 
   // Show loading states
-  if (serviceLoading || settingsLoading || availabilityLoading) {
+  if (serviceLoading || settingsLoading || availabilityLoading || appointmentsLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 flex items-center justify-center">
         <div className="text-center">
@@ -93,21 +96,22 @@ const SchedulingApp = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-12">
         <div className="grid lg:grid-cols-2 gap-12 items-start">
           {/* Left Column - Info */}
-          <InfoPanel selectedServices={selectedServices} />
+          <InfoPanel selectedService={selectedService} />
 
           {/* Right Column - Booking Interface */}
           <BookingInterface
             bookingStep={bookingStep}
             services={services}
-            selectedServices={selectedServices}
+            selectedService={selectedService}
             selectedDate={selectedDate}
             selectedTime={selectedTime}
             currentMonth={currentMonth}
             availability={availability}
+            existingAppointments={appointments}
             settings={settings}
             formData={formData}
             formErrors={formErrors}
-            onServiceToggle={handleServiceToggle}
+            onServiceSelect={setSelectedService}
             onDateSelect={handleDateSelect}
             onTimeSelect={setSelectedTime}
             onMonthChange={setCurrentMonth}
@@ -118,23 +122,6 @@ const SchedulingApp = () => {
           />
         </div>
       </div>
-      
-      {/* Submission error display */}
-      {submitError && (
-        <div className="fixed bottom-4 right-4 bg-red-500 text-white p-4 rounded-lg shadow-lg">
-          <p>Error: {submitError}</p>
-        </div>
-      )}
-      
-      {/* Loading overlay during submission */}
-      {isSubmitting && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Creating your appointment...</p>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
