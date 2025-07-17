@@ -7,7 +7,6 @@ export const useBookingState = () => {
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [bookingStep, setBookingStep] = useState<BookingStep>('services');
-  const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [selectedServicesArray, setSelectedServicesArray] = useState<Service[]>([]);
   const [formData, setFormData] = useState<BookingFormData>({
     name: '',
@@ -38,7 +37,6 @@ export const useBookingState = () => {
 
   const resetBooking = () => {
     setBookingStep('services');
-    setSelectedService(null);
     setSelectedServicesArray([]);
     setSelectedDate(null);
     setSelectedTime(null);
@@ -56,8 +54,6 @@ export const useBookingState = () => {
     setCurrentMonth,
     bookingStep,
     setBookingStep,
-    selectedService,
-    setSelectedService,
     selectedServices,
     setSelectedServices: setSelectedServicesArray,
     formData,

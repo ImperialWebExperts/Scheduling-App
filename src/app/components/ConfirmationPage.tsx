@@ -1,11 +1,11 @@
 import React from 'react';
 import { Check } from 'lucide-react';
-import { BookingFormData, Service } from '@/app/types';
+import { BookingFormData, SelectedServices } from '@/app/types';
 
 interface ConfirmationPageProps {
   selectedDate: Date | null;
   selectedTime: string | null;
-  selectedService: Service | null;
+  selectedServices: SelectedServices;
   formData: BookingFormData;
   onReset: () => void;
 }
@@ -13,7 +13,7 @@ interface ConfirmationPageProps {
 const ConfirmationPage: React.FC<ConfirmationPageProps> = ({
   selectedDate,
   selectedTime,
-  selectedService,
+  selectedServices,
   formData,
   onReset
 }) => {
@@ -40,11 +40,18 @@ const ConfirmationPage: React.FC<ConfirmationPageProps> = ({
           <div className="bg-gray-50 rounded-lg p-6 mb-6">
             <h3 className="font-semibold text-gray-900 mb-2">Meeting Details</h3>
             <div className="space-y-2 text-sm text-gray-600">
-              <p><strong>Service:</strong> {selectedService?.name}</p>
+              <p><strong>Services:</strong> {selectedServices.services.length} service{selectedServices.services.length !== 1 ? 's' : ''}</p>
+              <div className="ml-4 space-y-1">
+                {selectedServices.services.map((service, index) => (
+                  <p key={service.id} className="text-xs">
+                    • {service.name} ({service.durationMin} min{Number(service.price) > 0 ? `, $${service.price}` : ', Free'})
+                  </p>
+                ))}
+              </div>
               <p><strong>Date:</strong> {formatDate(selectedDate)}</p>
               <p><strong>Time:</strong> {selectedTime}</p>
-              <p><strong>Duration:</strong> {selectedService?.durationMin} minutes</p>
-              <p><strong>Price:</strong> {Number(selectedService?.price) === 0 ? 'Free' : selectedService?.price}</p>
+              <p><strong>Total Duration:</strong> {selectedServices.totalDuration} minutes</p>
+              <p><strong>Total Price:</strong> {selectedServices.totalPrice === 0 ? 'Free' : `$${selectedServices.totalPrice.toFixed(2)}`}</p>
               <p><strong>Attendee:</strong> {formData.name}</p>
               <p><strong>Email:</strong> {formData.email}</p>
             </div>

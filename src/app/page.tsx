@@ -2,10 +2,11 @@
 import React from 'react';
 import { useSchedulingData } from './hooks/useSchedulingData';
 import { useBookingState } from './hooks/useBookingState';
+import { useBookingSubmission } from './hooks/useBookingSubmission';
 import InfoPanel from './components/InfoPanel';
 import BookingInterface from './components/BookingInterface';
 import ConfirmationPage from './components/ConfirmationPage';
-import { CalendarDay } from './types';
+import { CalendarDay, Service } from './types';
 
 const SchedulingApp = () => {
   const {
@@ -26,8 +27,8 @@ const SchedulingApp = () => {
     setCurrentMonth,
     bookingStep,
     setBookingStep,
-    selectedService,
-    setSelectedService,
+    selectedServices,
+    setSelectedServices,
     formData,
     setFormData,
     formErrors,
@@ -35,12 +36,31 @@ const SchedulingApp = () => {
     resetBooking,
   } = useBookingState();
 
+  const { submitBooking, isSubmitting, submitError } = useBookingSubmission();
+
   const handleDateSelect = (day: CalendarDay) => {
     setSelectedDate(day.date);
   };
 
-  const handleSubmit = () => {
-    setBookingStep('confirmation');
+  const handleServiceToggle = (service: Service) => {
+    const isCurrentlySelected = selectedServices.services.some(s => s.id === service.id);
+    
+    if (isCurrentlySelected) {
+      // Remove service
+      const updatedServices = selectedServices.services.filter(s => s.id !== service.id);
+      setSelectedServices(updatedServices);
+    } else {
+      // Add service
+      const updatedServices = [...selectedServices.services, service];
+      setSelectedServices(updatedServices);
+    }
+  };
+
+  const handleSubmit = async () => {
+    const success = await submitBooking(selectedServices, selectedDate, selectedTime, formData);
+    if (success) {
+      setBookingStep('confirmation');
+    }
   };
 
   // Show confirmation page with different layout
@@ -49,7 +69,7 @@ const SchedulingApp = () => {
       <ConfirmationPage
         selectedDate={selectedDate}
         selectedTime={selectedTime}
-        selectedService={selectedService}
+        selectedServices={selectedServices}
         formData={formData}
         onReset={resetBooking}
       />
@@ -73,13 +93,13 @@ const SchedulingApp = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-12">
         <div className="grid lg:grid-cols-2 gap-12 items-start">
           {/* Left Column - Info */}
-          <InfoPanel selectedService={selectedService} />
+          <InfoPanel selectedServices={selectedServices} />
 
           {/* Right Column - Booking Interface */}
           <BookingInterface
             bookingStep={bookingStep}
             services={services}
-            selectedService={selectedService}
+            selectedServices={selectedServices}
             selectedDate={selectedDate}
             selectedTime={selectedTime}
             currentMonth={currentMonth}
@@ -87,7 +107,7 @@ const SchedulingApp = () => {
             settings={settings}
             formData={formData}
             formErrors={formErrors}
-            onServiceSelect={setSelectedService}
+            onServiceToggle={handleServiceToggle}
             onDateSelect={handleDateSelect}
             onTimeSelect={setSelectedTime}
             onMonthChange={setCurrentMonth}
@@ -98,6 +118,23 @@ const SchedulingApp = () => {
           />
         </div>
       </div>
+      
+      {/* Submission error display */}
+      {submitError && (
+        <div className="fixed bottom-4 right-4 bg-red-500 text-white p-4 rounded-lg shadow-lg">
+          <p>Error: {submitError}</p>
+        </div>
+      )}
+      
+      {/* Loading overlay during submission */}
+      {isSubmitting && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Creating your appointment...</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

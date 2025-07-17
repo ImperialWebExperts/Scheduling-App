@@ -1,9 +1,9 @@
 import React from 'react';
 import { ArrowRight } from 'lucide-react';
-import { Service, BookingFormData, FormErrors } from '../types';
+import { BookingFormData, FormErrors, SelectedServices } from '../types';
 
 interface BookingFormProps {
-  selectedService: Service | null;
+  selectedServices: SelectedServices;
   selectedDate: Date | null;
   selectedTime: string | null;
   formData: BookingFormData;
@@ -15,7 +15,7 @@ interface BookingFormProps {
 }
 
 const BookingForm: React.FC<BookingFormProps> = ({
-  selectedService,
+  selectedServices,
   selectedDate,
   selectedTime,
   formData,
@@ -89,14 +89,34 @@ const BookingForm: React.FC<BookingFormProps> = ({
       <div className="bg-gray-50 rounded-lg p-4 mb-6">
         <div className="flex justify-between items-start mb-2">
           <div>
-            <p className="font-semibold text-gray-900">{selectedService?.name}</p>
+            <p className="font-semibold text-gray-900">
+              {selectedServices.services.length} Service{selectedServices.services.length !== 1 ? 's' : ''}
+            </p>
             <p className="text-sm text-gray-600">{formatDate(selectedDate)} at {selectedTime}</p>
           </div>
           <div className="text-right">
             <p className="font-semibold text-gray-900">
-              {Number(selectedService?.price) === 0 ? 'Free' : selectedService?.price}
+              {selectedServices.totalPrice === 0 ? 'Free' : `$${selectedServices.totalPrice.toFixed(2)}`}
             </p>
-            <p className="text-sm text-gray-600">{selectedService?.durationMin}</p>
+            <p className="text-sm text-gray-600">{selectedServices.totalDuration} min</p>
+          </div>
+        </div>
+        
+        {/* Service breakdown */}
+        <div className="mt-3 pt-3 border-t border-gray-200">
+          <p className="text-sm font-medium text-gray-700 mb-2">Services:</p>
+          <div className="space-y-1">
+            {selectedServices.services.map((service) => (
+              <div key={service.id} className="flex justify-between items-center text-sm">
+                <span className="text-gray-600">{service.name}</span>
+                <div className="text-right">
+                  <span className="text-gray-600">{service.durationMin} min</span>
+                  <span className="ml-2 text-gray-900">
+                    {Number(service.price) === 0 ? 'Free' : `$${service.price}`}
+                  </span>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>

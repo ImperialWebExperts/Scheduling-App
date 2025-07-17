@@ -1,12 +1,33 @@
 import React from 'react';
 import { Clock, Check, Globe, Shield, Zap } from 'lucide-react';
-import { Service } from '../types';
+import { SelectedServices } from '../types';
 
 interface InfoPanelProps {
-  selectedService: Service | null;
+  selectedServices: SelectedServices;
 }
 
-const InfoPanel: React.FC<InfoPanelProps> = ({ selectedService }) => {
+const InfoPanel: React.FC<InfoPanelProps> = ({ selectedServices }) => {
+  const getDisplayText = () => {
+    if (selectedServices.services.length === 0) {
+      return {
+        title: 'Multiple Services Available',
+        subtitle: 'Choose one or more services that fit your needs'
+      };
+    } else if (selectedServices.services.length === 1) {
+      return {
+        title: selectedServices.services[0].name,
+        subtitle: `${selectedServices.totalDuration} minutes • ${selectedServices.totalPrice === 0 ? 'Free' : `$${selectedServices.totalPrice.toFixed(2)}`}`
+      };
+    } else {
+      return {
+        title: `${selectedServices.services.length} Services Selected`,
+        subtitle: `${selectedServices.totalDuration} minutes total • ${selectedServices.totalPrice === 0 ? 'Free' : `$${selectedServices.totalPrice.toFixed(2)}`}`
+      };
+    }
+  };
+
+  const displayInfo = getDisplayText();
+
   return (
     <div className="space-y-8">
       <div>
@@ -20,10 +41,26 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ selectedService }) => {
       </div>
 
       <div className="bg-white rounded-2xl p-6 shadow-lg">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+        <h3 className="text-lg font-semibold text-gray-900 mb-2 flex items-center">
           <Clock className="w-5 h-5 mr-2 text-indigo-600" />
-          {selectedService?.name || 'Multiple Services Available'}
+          {displayInfo.title}
         </h3>
+        <p className="text-sm text-indigo-600 mb-4">{displayInfo.subtitle}</p>
+        
+        {selectedServices.services.length > 1 && (
+          <div className="mb-4 p-3 bg-indigo-50 rounded-lg">
+            <p className="text-sm font-medium text-indigo-900 mb-2">Selected Services:</p>
+            <ul className="text-sm text-indigo-700 space-y-1">
+              {selectedServices.services.map((service, index) => (
+                <li key={service.id} className="flex justify-between">
+                  <span>{service.name}</span>
+                  <span>{service.durationMin} min</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        
         <ul className="space-y-3 text-gray-600">
           <li className="flex items-start">
             <Check className="w-5 h-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
