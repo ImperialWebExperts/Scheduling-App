@@ -10,7 +10,7 @@ import CalendarSelection from './components/CalendarSelection';
 import TimeSelection from './components/TimeSelection';
 import BookingForm from './components/BookingForm';
 import ConfirmationPage from './components/ConfirmationPage';
-import { CalendarDay, Service } from './types';
+import { CalendarDay } from './types';
 
 const SchedulingApp = () => {
   const {
@@ -35,7 +35,7 @@ const SchedulingApp = () => {
     bookingStep,
     setBookingStep,
     selectedServices,
-    setSelectedServices,
+    toggleService,
     formData,
     setFormData,
     formErrors,
@@ -43,20 +43,7 @@ const SchedulingApp = () => {
     resetBooking,
   } = useBookingState();
 
-  const { submitBooking, isSubmitting, submitError } = useBookingSubmission();
-
-  const handleServiceToggle = (service: Service) => {
-    const currentServices = selectedServices.services;
-    const isSelected = currentServices.some(s => s.id === service.id);
-    
-    if (isSelected) {
-      // Remove service
-      setSelectedServices(currentServices.filter(s => s.id !== service.id));
-    } else {
-      // Add service
-      setSelectedServices([...currentServices, service]);
-    }
-  };
+  const { submitBooking } = useBookingSubmission();
 
   const handleDateSelect = (day: CalendarDay) => {
     setSelectedDate(day.date);
@@ -69,6 +56,12 @@ const SchedulingApp = () => {
       setBookingStep('confirmation');
       // Refresh appointments to update available times
       await refreshAppointments();
+    }
+  };
+
+  const handleServiceContinue = () => {
+    if (selectedServices.services.length > 0) {
+      setBookingStep('calendar');
     }
   };
 
@@ -110,8 +103,8 @@ const SchedulingApp = () => {
               <ServiceSelection
                 services={services}
                 selectedServices={selectedServices.services}
-                onServiceToggle={handleServiceToggle}
-                onContinue={() => setBookingStep('calendar')}
+                onServiceToggle={toggleService}
+                onContinue={handleServiceContinue}
               />
             )}
 
@@ -154,20 +147,6 @@ const SchedulingApp = () => {
                 onSubmit={handleSubmit}
                 onBack={() => setBookingStep('times')}
               />
-            )}
-
-            {/* Show submit error if exists */}
-            {submitError && (
-              <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-                <p className="text-sm text-red-800">{submitError}</p>
-              </div>
-            )}
-
-            {/* Show loading state during submission */}
-            {isSubmitting && (
-              <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                <p className="text-sm text-blue-800">Creating your appointment...</p>
-              </div>
             )}
           </div>
         </div>

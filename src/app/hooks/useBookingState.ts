@@ -45,6 +45,17 @@ export const useBookingState = () => {
     setCurrentMonth(new Date());
   };
 
+  const toggleService = (service: Service) => {
+    setSelectedServicesArray(prev => {
+      const isSelected = prev.some(s => s.id === service.id);
+      if (isSelected) {
+        return prev.filter(s => s.id !== service.id);
+      } else {
+        return [...prev, service];
+      }
+    });
+  };
+
   return {
     selectedDate,
     setSelectedDate,
@@ -55,7 +66,7 @@ export const useBookingState = () => {
     bookingStep,
     setBookingStep,
     selectedServices,
-    setSelectedServices: setSelectedServicesArray,
+    toggleService,
     formData,
     setFormData,
     formErrors,

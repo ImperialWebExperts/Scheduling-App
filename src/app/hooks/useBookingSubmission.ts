@@ -1,65 +1,86 @@
-'use client';
-import { useState, useMemo } from 'react';
-import { Service, BookingFormData, FormErrors, BookingStep, SelectedServices } from '../types';
+// src/app/hooks/useBookingSubmission.ts
+import { useState } from 'react';
+import { SelectedServices, BookingFormData } from '../types';
 
-export const useBookingState = () => {
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [selectedTime, setSelectedTime] = useState<string | null>(null);
-  const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [bookingStep, setBookingStep] = useState<BookingStep>('services');
-  const [selectedServicesArray, setSelectedServicesArray] = useState<Service[]>([]);
-  const [formData, setFormData] = useState<BookingFormData>({
-    name: '',
-    email: '',
-    message: ''
-  });
-  const [formErrors, setFormErrors] = useState<FormErrors>({
-    name: '',
-    email: ''
-  });
+export const useBookingSubmission = () => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
-  // Calculate selectedServices object with totals
-  const selectedServices: SelectedServices = useMemo(() => {
-    const totalDuration = selectedServicesArray.reduce((sum, service) => {
-      return sum + parseInt(service.durationMin);
-    }, 0);
+  const submitBooking = async (
+    selectedServices: SelectedServices,
+    selectedDate: Date | null,
+    selectedTime: string | null,
+    formData: BookingFormData
+  ) => {
+    if (!selectedDate || !selectedTime || selectedServices.services.length === 0) {
+      setSubmitError('Missing required booking information');
+      return false;
+    }
+
+    setIsSubmitting(true);
+    setSubmitError(null);
+
+    try {
+      const serviceIds = selectedServices.services.map(service => service.id);
+      const dateString = selectedDate.toISOString().split('T')[0]; // YYYY-MM-DD format
+      
+      // Convert time to 24-hour format for API
+      const time24 = convertTo24Hour(selectedTime);
+
+      const response = await fetch('/api/appointments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          serviceIds,
+          date: dateString,
+          time: time24,
+          clientName: formData.name,
+          clientEmail: formData.email,
+          clientPhone: '', // You could add this to the form if needed
+          notes: formData.message,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to create appointment');
+      }
+
+      console.log('Appointment created successfully:', result);
+      return true;
+
+    } catch (error) {
+      console.error('Error submitting booking:', error);
+      setSubmitError(error instanceof Error ? error.message : 'Failed to submit booking');
+      return false;
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Helper function to convert 12-hour time to 24-hour format
+  const convertTo24Hour = (time12: string): string => {
+    const [time, modifier] = time12.split(' ');
+    let [hours] = time.split(':');
+    const [, minutes] = time.split(':');
     
-    const totalPrice = selectedServicesArray.reduce((sum, service) => {
-      return sum + parseFloat(service.price);
-    }, 0);
-
-    return {
-      services: selectedServicesArray,
-      totalDuration,
-      totalPrice
-    };
-  }, [selectedServicesArray]);
-
-  const resetBooking = () => {
-    setBookingStep('services');
-    setSelectedServicesArray([]);
-    setSelectedDate(null);
-    setSelectedTime(null);
-    setFormData({ name: '', email: '', message: '' });
-    setFormErrors({ name: '', email: '' });
-    setCurrentMonth(new Date());
+    if (hours === '12') {
+      hours = '00';
+    }
+    
+    if (modifier === 'PM') {
+      hours = (parseInt(hours, 10) + 12).toString();
+    }
+    
+    return `${hours.padStart(2, '0')}:${minutes}:00`;
   };
 
   return {
-    selectedDate,
-    setSelectedDate,
-    selectedTime,
-    setSelectedTime,
-    currentMonth,
-    setCurrentMonth,
-    bookingStep,
-    setBookingStep,
-    selectedServices,
-    setSelectedServices: setSelectedServicesArray,
-    formData,
-    setFormData,
-    formErrors,
-    setFormErrors,
-    resetBooking,
+    submitBooking,
+    isSubmitting,
+    submitError,
   };
 };
