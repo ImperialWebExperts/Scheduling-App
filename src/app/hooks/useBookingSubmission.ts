@@ -1,86 +1,133 @@
-// src/app/hooks/useBookingSubmission.ts
-import { useState } from 'react';
-import { SelectedServices, BookingFormData } from '../types';
+// src/app/api/appointments/route.ts
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/app/lib/prisma';
 
-export const useBookingSubmission = () => {
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
+export async function POST(request: NextRequest) {
+  try {
+    const {
+      serviceIds,
+      date,
+      time,
+      datetime, // New field to handle timezone properly
+      clientName,
+      clientEmail,
+      clientPhone = '',
+      notes = '',
+      businessId = 'iwe'
+    } = await request.json();
 
-  const submitBooking = async (
-    selectedServices: SelectedServices,
-    selectedDate: Date | null,
-    selectedTime: string | null,
-    formData: BookingFormData
-  ) => {
-    if (!selectedDate || !selectedTime || selectedServices.services.length === 0) {
-      setSubmitError('Missing required booking information');
-      return false;
+    // Validate required fields
+    if (!serviceIds || !Array.isArray(serviceIds) || serviceIds.length === 0) {
+      return NextResponse.json({ error: 'At least one service must be selected' }, { status: 400 });
     }
 
-    setIsSubmitting(true);
-    setSubmitError(null);
+    if (!date || !time || !clientName || !clientEmail) {
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    }
 
-    try {
-      const serviceIds = selectedServices.services.map(service => service.id);
-      const dateString = selectedDate.toISOString().split('T')[0]; // YYYY-MM-DD format
-      
-      // Convert time to 24-hour format for API
-      const time24 = convertTo24Hour(selectedTime);
-
-      const response = await fetch('/api/appointments', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          serviceIds,
-          date: dateString,
-          time: time24,
-          clientName: formData.name,
-          clientEmail: formData.email,
-          clientPhone: '', // You could add this to the form if needed
-          notes: formData.message,
-        }),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to create appointment');
+    // Get all selected services to calculate total duration
+    const services = await prisma.service.findMany({
+      where: {
+        id: { in: serviceIds },
+        businessId
       }
+    });
 
-      console.log('Appointment created successfully:', result);
-      return true;
-
-    } catch (error) {
-      console.error('Error submitting booking:', error);
-      setSubmitError(error instanceof Error ? error.message : 'Failed to submit booking');
-      return false;
-    } finally {
-      setIsSubmitting(false);
+    if (services.length !== serviceIds.length) {
+      return NextResponse.json({ error: 'One or more services not found' }, { status: 404 });
     }
-  };
 
-  // Helper function to convert 12-hour time to 24-hour format
-  const convertTo24Hour = (time12: string): string => {
-    const [time, modifier] = time12.split(' ');
-    let [hours] = time.split(':');
-    const [, minutes] = time.split(':');
-    
-    if (hours === '12') {
-      hours = '00';
-    }
-    
-    if (modifier === 'PM') {
-      hours = (parseInt(hours, 10) + 12).toString();
-    }
-    
-    return `${hours.padStart(2, '0')}:${minutes}:00`;
-  };
+    // Calculate total duration
+    const totalDuration = services.reduce((sum, service) => sum + service.durationMin, 0);
 
-  return {
-    submitBooking,
-    isSubmitting,
-    submitError,
-  };
-};
+    // Use the datetime if provided, otherwise fall back to the old method
+    let appointmentDate: Date;
+    if (datetime) {
+      appointmentDate = new Date(datetime);
+    } else {
+      // Fallback to old method - create date in local timezone
+      const localDate = new Date(date);
+      const [hours, minutes] = time.split(':');
+      localDate.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+      appointmentDate = localDate;
+    }
+
+    // Create the appointment with associated services
+    const appointment = await prisma.appointment.create({
+      data: {
+        date: appointmentDate,
+        durationMin: totalDuration,
+        clientName,
+        clientEmail,
+        clientPhone,
+        notes,
+        businessId,
+        services: {
+          create: serviceIds.map((serviceId: string) => ({
+            serviceId
+          }))
+        }
+      },
+      include: {
+        services: {
+          include: {
+            service: true
+          }
+        }
+      }
+    });
+
+    return NextResponse.json({
+      success: true,
+      appointment: {
+        id: appointment.id,
+        date: appointment.date,
+        durationMin: appointment.durationMin,
+        clientName: appointment.clientName,
+        clientEmail: appointment.clientEmail,
+        services: appointment.services.map(as => as.service)
+      }
+    });
+
+  } catch (error) {
+    console.error('Failed to create appointment:', error);
+    return NextResponse.json({ error: 'Failed to create appointment' }, { status: 500 });
+  }
+}
+
+export async function GET() {
+  try {
+    const appointments = await prisma.appointment.findMany({
+      where: {
+        businessId: 'iwe',
+      },
+      include: {
+        services: {
+          include: {
+            service: true
+          }
+        }
+      },
+      orderBy: {
+        date: 'asc'
+      }
+    });
+
+    const formattedAppointments = appointments.map(appointment => ({
+      id: appointment.id,
+      date: appointment.date,
+      durationMin: appointment.durationMin,
+      clientName: appointment.clientName,
+      clientEmail: appointment.clientEmail,
+      clientPhone: appointment.clientPhone,
+      notes: appointment.notes,
+      status: appointment.status,
+      services: appointment.services.map(as => as.service)
+    }));
+
+    return NextResponse.json(formattedAppointments);
+  } catch (error) {
+    console.error('Failed to fetch appointments:', error);
+    return NextResponse.json({ error: 'Failed to fetch appointments' }, { status: 500 });
+  }
+}
