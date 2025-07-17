@@ -53,7 +53,7 @@ const CalendarSelection: React.FC<CalendarSelectionProps> = ({
     const maxDate = getMaxDate();
 
     const closedDayNumbers = availability
-      .filter(a => a.startTime === 'Closed')
+      .filter(a => a.startTime === 'Close')
       .map(a => a.dayOfWeek);
 
     for (let i = 0; i < 42; i++) {

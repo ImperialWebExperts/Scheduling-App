@@ -27,14 +27,15 @@ model Service {
   price       Float
   business    Business @relation(fields: [businessId], references: [id])
   businessId  String
-  appointmentServices AppointmentService[]
+  // Many-to-many relationship
+  appointments AppointmentService[]
 }
 
 model Appointment {
   id           String   @id @default(cuid())
   createdAt    DateTime @default(now())
   date         DateTime // start time
-  durationMin  Int      // total duration for all services
+  durationMin  Int
   clientName   String
   clientEmail  String
   clientPhone  String
@@ -44,18 +45,18 @@ model Appointment {
   business     Business @relation(fields: [businessId], references: [id])
   businessId   String
   
-  // New: Many-to-many relationship with services
-  appointmentServices AppointmentService[]
+  // Many-to-many relationship
+  services     AppointmentService[]
 }
 
-// Junction table for many-to-many relationship between appointments and services
+// Junction table for many-to-many relationship
 model AppointmentService {
   id            String      @id @default(cuid())
   appointment   Appointment @relation(fields: [appointmentId], references: [id])
   appointmentId String
   service       Service     @relation(fields: [serviceId], references: [id])
   serviceId     String
-  
+
   @@unique([appointmentId, serviceId])
 }
 
@@ -76,7 +77,6 @@ model Settings {
   businessId      String   @unique
 }
 
-// Optional: for better UX and logic
 enum AppointmentStatus {
   SCHEDULED
   COMPLETED
