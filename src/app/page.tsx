@@ -10,7 +10,7 @@ import CalendarSelection from './components/CalendarSelection';
 import TimeSelection from './components/TimeSelection';
 import BookingForm from './components/BookingForm';
 import ConfirmationPage from './components/ConfirmationPage';
-import { CalendarDay } from './types';
+import { CalendarDay, Service } from './types';
 
 const SchedulingApp = () => {
   const {
@@ -35,7 +35,7 @@ const SchedulingApp = () => {
     bookingStep,
     setBookingStep,
     selectedServices,
-    toggleService,
+    setSelectedServices,
     formData,
     setFormData,
     formErrors,
@@ -43,10 +43,36 @@ const SchedulingApp = () => {
     resetBooking,
   } = useBookingState();
 
-  const { submitBooking } = useBookingSubmission();
+  const { submitBooking, isSubmitting, submitError } = useBookingSubmission();
+
+  const handleServiceToggle = (service: Service) => {
+    const isSelected = selectedServices.services.some(s => s.id === service.id);
+    
+    if (isSelected) {
+      // Remove service
+      const newServices = selectedServices.services.filter(s => s.id !== service.id);
+      setSelectedServices(newServices);
+    } else {
+      // Add service
+      setSelectedServices([...selectedServices.services, service]);
+    }
+  };
+
+  const handleServiceContinue = () => {
+    if (selectedServices.services.length > 0) {
+      setBookingStep('calendar');
+    }
+  };
 
   const handleDateSelect = (day: CalendarDay) => {
+    if (day.isPast || !day.isCurrentMonth || day.isBeyondLimit || day.isClosed) return;
     setSelectedDate(day.date);
+    setBookingStep('times');
+  };
+
+  const handleTimeSelect = (time: string) => {
+    setSelectedTime(time);
+    setBookingStep('form');
   };
 
   const handleSubmit = async () => {
@@ -54,14 +80,7 @@ const SchedulingApp = () => {
     
     if (success) {
       setBookingStep('confirmation');
-      // Refresh appointments to update available times
       await refreshAppointments();
-    }
-  };
-
-  const handleServiceContinue = () => {
-    if (selectedServices.services.length > 0) {
-      setBookingStep('calendar');
     }
   };
 
@@ -103,7 +122,7 @@ const SchedulingApp = () => {
               <ServiceSelection
                 services={services}
                 selectedServices={selectedServices.services}
-                onServiceToggle={toggleService}
+                onServiceToggle={handleServiceToggle}
                 onContinue={handleServiceContinue}
               />
             )}
@@ -127,10 +146,7 @@ const SchedulingApp = () => {
                 selectedDate={selectedDate}
                 availability={availability}
                 existingAppointments={appointments}
-                onTimeSelect={(time) => {
-                  setSelectedTime(time);
-                  setBookingStep('form');
-                }}
+                onTimeSelect={handleTimeSelect}
                 onBack={() => setBookingStep('calendar')}
               />
             )}
@@ -147,6 +163,23 @@ const SchedulingApp = () => {
                 onSubmit={handleSubmit}
                 onBack={() => setBookingStep('times')}
               />
+            )}
+
+            {/* Show loading during submission */}
+            {isSubmitting && (
+              <div className="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center rounded-2xl">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-2"></div>
+                  <p className="text-gray-600">Submitting booking...</p>
+                </div>
+              </div>
+            )}
+
+            {/* Show submission error */}
+            {submitError && (
+              <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-sm text-red-800">{submitError}</p>
+              </div>
             )}
           </div>
         </div>
