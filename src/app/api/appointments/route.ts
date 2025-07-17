@@ -8,7 +8,6 @@ export async function POST(request: NextRequest) {
       serviceIds,
       date,
       time,
-      datetime, // New field to handle timezone properly
       clientName,
       clientEmail,
       clientPhone = '',
@@ -40,19 +39,10 @@ export async function POST(request: NextRequest) {
     // Calculate total duration
     const totalDuration = services.reduce((sum, service) => sum + service.durationMin, 0);
 
-    // Use the datetime if provided, otherwise fall back to the old method
-    let appointmentDate: Date;
-    if (datetime) {
-      appointmentDate = new Date(datetime);
-    } else {
-      // Fallback to old method - create date in local timezone
-      const localDate = new Date(date);
-      const [hours, minutes] = time.split(':');
-      localDate.setHours(parseInt(hours), parseInt(minutes), 0, 0);
-      appointmentDate = localDate;
-    }
+    // Create appointment datetime
+    const appointmentDate = new Date(`${date}T${time}`);
 
-    // Create the appointment with associated services
+    // Create the appointment with services using nested create
     const appointment = await prisma.appointment.create({
       data: {
         date: appointmentDate,
