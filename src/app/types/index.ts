@@ -43,7 +43,6 @@ export interface FormErrors {
   email: string;
 }
 
-// Updated to support multiple services
 export interface SelectedServices {
   services: Service[];
   totalDuration: number;

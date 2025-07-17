@@ -3,17 +3,17 @@ import { Check } from 'lucide-react';
 import { BookingFormData, SelectedServices } from '../types';
 
 interface ConfirmationPageProps {
-  selectedServices: SelectedServices;
   selectedDate: Date | null;
   selectedTime: string | null;
+  selectedServices: SelectedServices;
   formData: BookingFormData;
   onReset: () => void;
 }
 
 const ConfirmationPage: React.FC<ConfirmationPageProps> = ({
-  selectedServices,
   selectedDate,
   selectedTime,
+  selectedServices,
   formData,
   onReset
 }) => {
@@ -27,8 +27,8 @@ const ConfirmationPage: React.FC<ConfirmationPageProps> = ({
     });
   };
 
-  const formatTotalPrice = () => {
-    return selectedServices.totalPrice === 0 ? 'Free' : `$${selectedServices.totalPrice}`;
+  const formatPrice = (price: number) => {
+    return price === 0 ? 'Free' : `$${price.toFixed(2)}`;
   };
 
   return (
@@ -43,40 +43,31 @@ const ConfirmationPage: React.FC<ConfirmationPageProps> = ({
           
           <div className="bg-gray-50 rounded-lg p-6 mb-6">
             <h3 className="font-semibold text-gray-900 mb-4">Meeting Details</h3>
-            <div className="space-y-3 text-sm text-gray-600">
-              <div className="flex justify-between">
-                <span><strong>Date:</strong></span>
-                <span>{formatDate(selectedDate)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span><strong>Time:</strong></span>
-                <span>{selectedTime}</span>
-              </div>
-              <div className="flex justify-between">
-                <span><strong>Duration:</strong></span>
-                <span>{selectedServices.totalDuration} minutes</span>
-              </div>
-              <div className="flex justify-between">
-                <span><strong>Total Price:</strong></span>
-                <span>{formatTotalPrice()}</span>
-              </div>
-              <div className="flex justify-between">
-                <span><strong>Attendee:</strong></span>
-                <span>{formData.name}</span>
-              </div>
+            <div className="space-y-2 text-sm text-gray-600">
+              <p><strong>Date:</strong> {formatDate(selectedDate)}</p>
+              <p><strong>Time:</strong> {selectedTime}</p>
+              <p><strong>Total Duration:</strong> {selectedServices.totalDuration} minutes</p>
+              <p><strong>Total Price:</strong> {formatPrice(selectedServices.totalPrice)}</p>
+              <p><strong>Attendee:</strong> {formData.name}</p>
+              <p><strong>Email:</strong> {formData.email}</p>
+              {formData.message && (
+                <p><strong>Message:</strong> {formData.message}</p>
+              )}
             </div>
             
-            <div className="mt-4 pt-4 border-t border-gray-200">
-              <h4 className="font-medium text-gray-900 mb-2">Services Booked:</h4>
-              <div className="space-y-1">
-                {selectedServices.services.map((service, index) => (
-                  <div key={service.id} className="flex justify-between text-sm text-gray-600">
-                    <span>{index + 1}. {service.name}</span>
-                    <span>{service.durationMin} min</span>
-                  </div>
-                ))}
+            {selectedServices.services.length > 0 && (
+              <div className="mt-4">
+                <h4 className="font-semibold text-gray-900 mb-2">Services:</h4>
+                <ul className="space-y-1 text-sm text-gray-600">
+                  {selectedServices.services.map((service) => (
+                    <li key={service.id} className="flex justify-between">
+                      <span>{service.name}</span>
+                      <span>{service.durationMin} min • {Number(service.price) === 0 ? 'Free' : service.price}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
-            </div>
+            )}
           </div>
           
           <button 
