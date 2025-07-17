@@ -1,6 +1,6 @@
 // src/app/components/TimeSelection.tsx
 import React from 'react';
-import { Service, Availability, Appointment, SelectedServices } from '../types';
+import {  Availability, Appointment, SelectedServices } from '../types';
 import generateTimeSlots from '../lib/generateTimeSlots';
 
 interface TimeSelectionProps {
@@ -90,7 +90,7 @@ const TimeSelection: React.FC<TimeSelectionProps> = ({
       
       {isDayClosed() ? (
         <div className="text-center py-8">
-          <p className="text-gray-500 mb-4">We're closed on this day</p>
+          <p className="text-gray-500 mb-4">We&apos;re closed on this day</p>
           <p className="text-sm text-gray-400">
             Please select a different date
           </p>
@@ -116,7 +116,7 @@ const TimeSelection: React.FC<TimeSelectionProps> = ({
         <div className="text-center py-8">
           <p className="text-gray-500 mb-4">No available times for this date</p>
           <p className="text-sm text-gray-400">
-            All time slots are booked or the appointment duration ({selectedServices.totalDuration} min) doesn't fit in the available windows. Please select a different date or try fewer services.
+            All time slots are booked or the appointment duration ({selectedServices.totalDuration} min) doesn&apos;t fit in the available windows. Please select a different date or try fewer services.
           </p>
         </div>
       )}

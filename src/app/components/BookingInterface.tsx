@@ -19,6 +19,7 @@ interface BookingInterfaceProps {
   formData: BookingFormData;
   formErrors: FormErrors;
   onServiceToggle: (service: Service) => void;
+  onServicesContinue: () => void;
   onDateSelect: (day: CalendarDay) => void;
   onTimeSelect: (time: string) => void;
   onMonthChange: (month: Date) => void;
@@ -41,6 +42,7 @@ const BookingInterface: React.FC<BookingInterfaceProps> = ({
   formData,
   formErrors,
   onServiceToggle,
+  onServicesContinue,
   onDateSelect,
   onTimeSelect,
   onMonthChange,
@@ -49,10 +51,6 @@ const BookingInterface: React.FC<BookingInterfaceProps> = ({
   onSubmit,
   onStepChange
 }) => {
-  const handleServiceContinue = () => {
-    onStepChange('calendar');
-  };
-
   const handleDateSelect = (day: CalendarDay) => {
     if (day.isPast || !day.isCurrentMonth || day.isBeyondLimit || day.isClosed) return;
     onDateSelect(day);
@@ -71,7 +69,7 @@ const BookingInterface: React.FC<BookingInterfaceProps> = ({
           services={services}
           selectedServices={selectedServices.services}
           onServiceToggle={onServiceToggle}
-          onContinue={handleServiceContinue}
+          onContinue={onServicesContinue}
         />
       )}
 
@@ -81,6 +79,7 @@ const BookingInterface: React.FC<BookingInterfaceProps> = ({
           selectedDate={selectedDate}
           currentMonth={currentMonth}
           availability={availability}
+          existingAppointments={existingAppointments}
           settings={settings}
           onDateSelect={handleDateSelect}
           onMonthChange={onMonthChange}

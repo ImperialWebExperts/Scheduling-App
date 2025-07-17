@@ -67,14 +67,14 @@ const CalendarSelection: React.FC<CalendarSelectionProps> = ({
     return 'available';
   };
 
-  const generateCalendar = () => {
+  const generateCalendar = (): CalendarDayWithAvailability[] => {
     const year = currentMonth.getFullYear();
     const month = currentMonth.getMonth();
     const firstDay = new Date(year, month, 1);
     const startDate = new Date(firstDay);
     startDate.setDate(startDate.getDate() - firstDay.getDay());
 
-    const days = [];
+    const days: CalendarDayWithAvailability[] = [];
     const currentDate = new Date(startDate);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -105,7 +105,7 @@ const CalendarSelection: React.FC<CalendarSelectionProps> = ({
         isClosed,
         dayNumber: currentDate.getDate(),
         availabilityStatus
-      });
+      } as CalendarDayWithAvailability);
 
       currentDate.setDate(currentDate.getDate() + 1);
     }
@@ -126,7 +126,11 @@ const CalendarSelection: React.FC<CalendarSelectionProps> = ({
 
   const days = generateCalendar();
 
-  const getDateButtonStyles = (day: any) => {
+  interface CalendarDayWithAvailability extends CalendarDay {
+    availabilityStatus?: 'available' | 'limited' | 'unavailable' | null;
+  }
+
+  const getDateButtonStyles = (day: CalendarDayWithAvailability) => {
     const baseClasses = "aspect-square p-2 text-sm rounded-lg transition-all duration-200 relative";
     
     if (day.isClosed) {
@@ -158,7 +162,7 @@ const CalendarSelection: React.FC<CalendarSelectionProps> = ({
     }
   };
 
-  const getAvailabilityIndicator = (day: any) => {
+  const getAvailabilityIndicator = (day: CalendarDayWithAvailability) => {
     if (!day.isCurrentMonth || day.isPast || day.isBeyondLimit || day.isClosed) {
       return null;
     }
