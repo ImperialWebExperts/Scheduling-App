@@ -3,7 +3,7 @@ import { SelectedServices, Availability } from '../types';
 import generateTimeSlots from '../lib/generateTimeSlots';
 
 interface TimeSelectionProps {
-  selectedServices: SelectedServices;
+  selectedServices: SelectedServices | null;
   selectedDate: Date | null;
   availability: Availability[];
   onTimeSelect: (time: string) => void;
@@ -30,49 +30,40 @@ const TimeSelection: React.FC<TimeSelectionProps> = ({
   const getAvailableTimes = () => {
     if (!selectedDate) return [];
     
-    return availability
-      .filter(a => a.dayOfWeek === selectedDate.getDay())
-      .flatMap(({ startTime, endTime }) => 
-        generateTimeSlots(startTime, endTime, selectedServices.totalDuration)
-      );
+    const dayOfWeek = selectedDate.getDay();
+    // Use a default duration if no service is selected
+    const serviceDuration = selectedServices && selectedServices.services.length > 0 
+      ? parseInt(selectedServices.services[0].durationMin) 
+      : 30;
+    
+    // Get all availability slots for this day
+    const dayAvailability = availability.filter(a => a.dayOfWeek === dayOfWeek);
+    console.log(dayAvailability)
+    // Generate time slots for each availability period and combine them
+    const allSlots: string[] = [];
+    
+    dayAvailability.forEach(({ startTime, endTime }) => {
+      // Skip if it's marked as closed
+      if (startTime === 'Closed' || endTime === 'Closed') return;
+      
+      const slots = generateTimeSlots(startTime, endTime, serviceDuration);
+      allSlots.push(...slots);
+    });
+    
+    // Remove duplicates and sort
+    const uniqueSlots = [...new Set(allSlots)];
+    
+    // Sort the time slots chronologically
+    uniqueSlots.sort((a, b) => {
+      const timeA = new Date(`1970/01/01 ${a}`);
+      const timeB = new Date(`1970/01/01 ${b}`);
+      return timeA.getTime() - timeB.getTime();
+    });
+    
+    return uniqueSlots;
   };
 
-  const formatPrice = (price: number) => {
-    return price === 0 ? 'Free' : `$${price.toFixed(2)}`;
-  };
-
-  const renderServicesSummary = () => {
-    if (selectedServices.services.length === 1) {
-      const service = selectedServices.services[0];
-      return (
-        <div className="bg-indigo-50 rounded-lg p-3 mb-4">
-          <p className="font-semibold text-indigo-900">{service.name}</p>
-          <p className="text-sm text-indigo-600">
-            {formatDate(selectedDate)} • {service.durationMin} min • {Number(service.price) === 0 ? 'Free' : service.price}
-          </p>
-        </div>
-      );
-    }
-
-    return (
-      <div className="bg-indigo-50 rounded-lg p-3 mb-4">
-        <p className="font-semibold text-indigo-900">
-          {selectedServices.services.length} Services Selected
-        </p>
-        <p className="text-sm text-indigo-600 mb-2">
-          {formatDate(selectedDate)} • {selectedServices.totalDuration} min total • {formatPrice(selectedServices.totalPrice)}
-        </p>
-        <div className="space-y-1">
-          {selectedServices.services.map((service) => (
-            <div key={service.id} className="text-xs text-indigo-700 flex justify-between">
-              <span>{service.name}</span>
-              <span>{service.durationMin} min</span>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  };
+  const availableTimes = getAvailableTimes();
 
   return (
     <div>
@@ -85,20 +76,33 @@ const TimeSelection: React.FC<TimeSelectionProps> = ({
       
       <div className="mb-6">
         <h2 className="text-2xl font-bold text-gray-900 mb-2">Select a Time</h2>
-        {renderServicesSummary()}
+        <div className="bg-indigo-50 rounded-lg p-3 mb-4">
+          <p className="font-semibold text-indigo-900">
+            {selectedServices?.services[0]?.name || 'Service'}
+          </p>
+          <p className="text-sm text-indigo-600">
+            {formatDate(selectedDate)} • {selectedServices?.totalDuration || 0} min • {selectedServices?.totalPrice === 0 ? 'Free' : `${selectedServices?.totalPrice || 0}`}
+          </p>
+        </div>
       </div>
       
-      <div className="grid grid-cols-2 gap-3">
-        {getAvailableTimes().map(time => (
-          <button
-            key={time}
-            onClick={() => onTimeSelect(time)}
-            className="text-[#23508e] p-3 border border-gray-200 rounded-lg hover:bg-indigo-50 hover:border-indigo-300 transition-all duration-200 text-center"
-          >
-            {time}
-          </button>
-        ))}
-      </div>
+      {availableTimes.length === 0 ? (
+        <div className="text-center py-8">
+          <p className="text-gray-500">No available times for this date.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-3">
+          {availableTimes.map(time => (
+            <button
+              key={time}
+              onClick={() => onTimeSelect(time)}
+              className="text-[#23508e] p-3 border border-gray-200 rounded-lg hover:bg-indigo-50 hover:border-indigo-300 transition-all duration-200 text-center"
+            >
+              {time}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
