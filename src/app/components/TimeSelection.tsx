@@ -1,8 +1,8 @@
 import React from 'react';
-import { Service, Availability } from '../types';
+import { SelectedServices, Availability } from '../types';
 
 interface TimeSelectionProps {
-  selectedServices: Service | null;
+  selectedServices: SelectedServices | null;
   selectedDate: Date | null;
   availability: Availability[];
   onTimeSelect: (time: string) => void;
