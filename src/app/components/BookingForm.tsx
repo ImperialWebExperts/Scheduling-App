@@ -1,31 +1,33 @@
 import React from 'react';
-import { ArrowRight, Loader2 } from 'lucide-react';
-import { Service, BookingFormData, FormErrors } from '../types';
+import { ArrowRight } from 'lucide-react';
+import { BookingFormData, FormErrors, SelectedServices } from '../types';
 
 interface BookingFormProps {
-  selectedService: Service | null;
+  selectedServices: SelectedServices;
   selectedDate: Date | null;
   selectedTime: string | null;
   formData: BookingFormData;
   formErrors: FormErrors;
-  isSubmitting?: boolean;
   onFormDataChange: (data: BookingFormData) => void;
   onFormErrorsChange: (errors: FormErrors) => void;
   onSubmit: () => void;
   onBack: () => void;
+  isSubmitting?: boolean;
+  submitError?: string | null;
 }
 
 const BookingForm: React.FC<BookingFormProps> = ({
-  selectedService,
+  selectedServices,
   selectedDate,
   selectedTime,
   formData,
   formErrors,
-  isSubmitting = false,
   onFormDataChange,
   onFormErrorsChange,
   onSubmit,
-  onBack
+  onBack,
+  isSubmitting = false,
+  submitError = null
 }) => {
   const formatDate = (date: Date | null) => {
     if (!date) return '';
@@ -35,6 +37,10 @@ const BookingForm: React.FC<BookingFormProps> = ({
       month: 'long',
       day: 'numeric'
     });
+  };
+
+  const formatTotalPrice = () => {
+    return selectedServices.totalPrice === 0 ? 'Free' : `$${selectedServices.totalPrice}`;
   };
 
   const validateEmail = (email: string): boolean => {
@@ -63,7 +69,7 @@ const BookingForm: React.FC<BookingFormProps> = ({
   };
 
   const handleSubmit = () => {
-    if (validateForm() && !isSubmitting) {
+    if (validateForm()) {
       onSubmit();
     }
   };
@@ -81,10 +87,7 @@ const BookingForm: React.FC<BookingFormProps> = ({
     <div>
       <button
         onClick={onBack}
-        disabled={isSubmitting}
-        className={`flex items-center text-indigo-600 hover:text-indigo-800 mb-6 transition-colors ${
-          isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
-        }`}
+        className="flex items-center text-indigo-600 hover:text-indigo-800 mb-6 transition-colors"
       >
         ← Back to time selection
       </button>
@@ -94,14 +97,19 @@ const BookingForm: React.FC<BookingFormProps> = ({
       <div className="bg-gray-50 rounded-lg p-4 mb-6">
         <div className="flex justify-between items-start mb-2">
           <div>
-            <p className="font-semibold text-gray-900">{selectedService?.name}</p>
-            <p className="text-sm text-gray-600">{formatDate(selectedDate)} at {selectedTime}</p>
+            <p className="font-semibold text-gray-900">
+              {selectedServices.services.length} Service{selectedServices.services.length > 1 ? 's' : ''}
+            </p>
+            <p className="text-sm text-gray-600 mb-1">{formatDate(selectedDate)} at {selectedTime}</p>
+            <div className="text-sm text-gray-600">
+              {selectedServices.services.map(service => service.name).join(', ')}
+            </div>
           </div>
           <div className="text-right">
             <p className="font-semibold text-gray-900">
-              {Number(selectedService?.price) === 0 ? 'Free' : selectedService?.price}
+              {formatTotalPrice()}
             </p>
-            <p className="text-sm text-gray-600">{selectedService?.durationMin} min</p>
+            <p className="text-sm text-gray-600">{selectedServices.totalDuration} min</p>
           </div>
         </div>
       </div>
@@ -115,10 +123,7 @@ const BookingForm: React.FC<BookingFormProps> = ({
             type="text"
             value={formData.name}
             onChange={(e) => handleInputChange('name', e.target.value)}
-            disabled={isSubmitting}
             className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-[#23508e] ${
-              isSubmitting ? 'bg-gray-100 cursor-not-allowed' : ''
-            } ${
               formErrors.name 
                 ? 'border-red-500 focus:border-red-500' 
                 : 'border-gray-300 focus:border-indigo-500'
@@ -138,10 +143,7 @@ const BookingForm: React.FC<BookingFormProps> = ({
             type="email"
             value={formData.email}
             onChange={(e) => handleInputChange('email', e.target.value)}
-            disabled={isSubmitting}
             className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-[#23508e] ${
-              isSubmitting ? 'bg-gray-100 cursor-not-allowed' : ''
-            } ${
               formErrors.email 
                 ? 'border-red-500 focus:border-red-500' 
                 : 'border-gray-300 focus:border-indigo-500'
@@ -160,27 +162,30 @@ const BookingForm: React.FC<BookingFormProps> = ({
           <textarea
             value={formData.message}
             onChange={(e) => handleInputChange('message', e.target.value)}
-            disabled={isSubmitting}
             rows={4}
-            className={`text-[#23508e] w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${
-              isSubmitting ? 'bg-gray-100 cursor-not-allowed' : ''
-            }`}
+            className="text-[#23508e] w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             placeholder="Tell me about your project or what you'd like to discuss..."
           />
         </div>
         
+        {submitError && (
+          <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-sm text-red-800">{submitError}</p>
+          </div>
+        )}
+        
         <button
           onClick={handleSubmit}
           disabled={isSubmitting}
-          className={`w-full py-3 rounded-lg font-semibold transition-colors flex items-center justify-center space-x-2 ${
-            isSubmitting
-              ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
-              : 'bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer'
+          className={`cursor-pointer w-full py-3 rounded-lg font-semibold transition-colors flex items-center justify-center space-x-2 ${
+            isSubmitting 
+              ? 'bg-gray-400 text-gray-600 cursor-not-allowed' 
+              : 'bg-indigo-600 text-white hover:bg-indigo-700'
           }`}
         >
           {isSubmitting ? (
             <>
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
               <span>Creating Booking...</span>
             </>
           ) : (

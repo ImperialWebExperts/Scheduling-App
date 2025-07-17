@@ -2,115 +2,122 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/prisma';
 
-export async function GET() {
-  return NextResponse.json({ message: 'Appointments API is working' });
-}
-
 export async function POST(request: NextRequest) {
   try {
-    console.log('Appointments API called');
-    
-    const body = await request.json();
-    console.log('Request body:', body);
-    
-    const { 
-      serviceId, 
-      date, 
-      time, 
-      clientName, 
-      clientEmail, 
-      notes 
-    } = body;
+    const {
+      serviceIds,
+      date,
+      time,
+      clientName,
+      clientEmail,
+      clientPhone = '',
+      notes = '',
+      businessId = 'iwe'
+    } = await request.json();
 
     // Validate required fields
-    if (!serviceId || !date || !time || !clientName || !clientEmail) {
-      return NextResponse.json(
-        { error: 'Missing required fields' }, 
-        { status: 400 }
-      );
+    if (!serviceIds || !Array.isArray(serviceIds) || serviceIds.length === 0) {
+      return NextResponse.json({ error: 'At least one service must be selected' }, { status: 400 });
     }
 
-    // Get service details to determine duration
-    const service = await prisma.service.findUnique({
-      where: { id: serviceId }
-    });
-
-    if (!service) {
-      return NextResponse.json(
-        { error: 'Service not found' }, 
-        { status: 404 }
-      );
+    if (!date || !time || !clientName || !clientEmail) {
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    console.log('Service found:', service);
-
-    // Combine date and time into a proper DateTime
-    const appointmentDate = new Date(date);
-    const [timeStr, period] = time.split(' ');
-    const [hours, minutes] = timeStr.split(':').map(Number);
-    
-    let adjustedHours = hours;
-    if (period === 'PM' && hours !== 12) {
-      adjustedHours += 12;
-    } else if (period === 'AM' && hours === 12) {
-      adjustedHours = 0;
-    }
-    
-    appointmentDate.setHours(adjustedHours, minutes, 0, 0);
-
-    console.log('Appointment date/time:', appointmentDate);
-
-    // Check if the time slot is already booked
-    const existingAppointment = await prisma.appointment.findFirst({
+    // Get all selected services to calculate total duration
+    const services = await prisma.service.findMany({
       where: {
-        date: appointmentDate,
-        businessId: 'iwe',
-        status: 'SCHEDULED'
+        id: { in: serviceIds },
+        businessId
       }
     });
 
-    if (existingAppointment) {
-      return NextResponse.json(
-        { error: 'This time slot is already booked' }, 
-        { status: 409 }
-      );
+    if (services.length !== serviceIds.length) {
+      return NextResponse.json({ error: 'One or more services not found' }, { status: 404 });
     }
 
-    // Create the appointment
+    // Calculate total duration
+    const totalDuration = services.reduce((sum, service) => sum + service.durationMin, 0);
+
+    // Create appointment datetime
+    const appointmentDate = new Date(`${date}T${time}`);
+
+    // Create the appointment with associated services
     const appointment = await prisma.appointment.create({
       data: {
         date: appointmentDate,
-        durationMin: service.durationMin,
+        durationMin: totalDuration,
         clientName,
         clientEmail,
-        clientPhone: '', // You might want to add phone field to your form
-        notes: notes || '',
-        businessId: 'iwe',
-        serviceId,
-        status: 'SCHEDULED'
+        clientPhone,
+        notes,
+        businessId,
+        appointmentServices: {
+          create: serviceIds.map((serviceId: string) => ({
+            serviceId
+          }))
+        }
       },
       include: {
-        service: true
+        appointmentServices: {
+          include: {
+            service: true
+          }
+        }
       }
     });
 
-    console.log('Appointment created:', appointment);
-
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       appointment: {
         id: appointment.id,
         date: appointment.date,
-        service: appointment.service.name,
-        duration: appointment.durationMin
+        durationMin: appointment.durationMin,
+        clientName: appointment.clientName,
+        clientEmail: appointment.clientEmail,
+        services: appointment.appointmentServices.map(as => as.service)
       }
     });
 
   } catch (error) {
     console.error('Failed to create appointment:', error);
-    return NextResponse.json(
-      { error: 'Failed to create appointment' }, 
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to create appointment' }, { status: 500 });
+  }
+}
+
+export async function GET() {
+  try {
+    const appointments = await prisma.appointment.findMany({
+      where: {
+        businessId: 'iwe',
+      },
+      include: {
+        appointmentServices: {
+          include: {
+            service: true
+          }
+        }
+      },
+      orderBy: {
+        date: 'asc'
+      }
+    });
+
+    const formattedAppointments = appointments.map(appointment => ({
+      id: appointment.id,
+      date: appointment.date,
+      durationMin: appointment.durationMin,
+      clientName: appointment.clientName,
+      clientEmail: appointment.clientEmail,
+      clientPhone: appointment.clientPhone,
+      notes: appointment.notes,
+      status: appointment.status,
+      services: appointment.appointmentServices.map(as => as.service)
+    }));
+
+    return NextResponse.json(formattedAppointments);
+  } catch (error) {
+    console.error('Failed to fetch appointments:', error);
+    return NextResponse.json({ error: 'Failed to fetch appointments' }, { status: 500 });
   }
 }

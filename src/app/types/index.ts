@@ -43,18 +43,11 @@ export interface FormErrors {
   email: string;
 }
 
-export type BookingStep = 'services' | 'calendar' | 'times' | 'form' | 'confirmation';
-
-// New interface for selected services with their details
-export interface SelectedService extends Service {
-  selected: boolean;
-}
-
-// Helper interface for booking summary
-export interface BookingSummary {
+// Updated to support multiple services
+export interface SelectedServices {
   services: Service[];
   totalDuration: number;
   totalPrice: number;
-  date: Date | null;
-  time: string | null;
 }
+
+export type BookingStep = 'services' | 'calendar' | 'times' | 'form' | 'confirmation';

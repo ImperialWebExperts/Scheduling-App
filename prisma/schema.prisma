@@ -1,4 +1,3 @@
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -28,14 +27,14 @@ model Service {
   price       Float
   business    Business @relation(fields: [businessId], references: [id])
   businessId  String
-  appointments Appointment[]
+  appointmentServices AppointmentService[]
 }
 
 model Appointment {
   id           String   @id @default(cuid())
   createdAt    DateTime @default(now())
   date         DateTime // start time
-  durationMin  Int
+  durationMin  Int      // total duration for all services
   clientName   String
   clientEmail  String
   clientPhone  String
@@ -44,8 +43,20 @@ model Appointment {
 
   business     Business @relation(fields: [businessId], references: [id])
   businessId   String
-  service      Service  @relation(fields: [serviceId], references: [id])
-  serviceId    String
+  
+  // New: Many-to-many relationship with services
+  appointmentServices AppointmentService[]
+}
+
+// Junction table for many-to-many relationship between appointments and services
+model AppointmentService {
+  id            String      @id @default(cuid())
+  appointment   Appointment @relation(fields: [appointmentId], references: [id])
+  appointmentId String
+  service       Service     @relation(fields: [serviceId], references: [id])
+  serviceId     String
+  
+  @@unique([appointmentId, serviceId])
 }
 
 model Availability {

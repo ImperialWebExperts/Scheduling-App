@@ -1,4 +1,4 @@
-function generateTimeSlots(start: string, end: string,): string[] {
+function generateTimeSlots(start: string, end: string, serviceDuration: number = 30): string[] {
   const slots: string[] = [];
 
   const format = (date: Date) =>
@@ -21,14 +21,20 @@ function generateTimeSlots(start: string, end: string,): string[] {
     date.setHours(hour, minute, 0, 0);
     return date;
   };
+
   const startTime = parseTime(start);
   const endTime = parseTime(end);
+  
   console.log('Start Time:', startTime);
   console.log('End Time:', endTime);
+  console.log('Service Duration:', serviceDuration, 'minutes');
+
   const current = new Date(startTime);
-  while (current < endTime) {
+  
+  // Generate slots ensuring there's enough time for the full service duration
+  while (current.getTime() + (serviceDuration * 60 * 1000) <= endTime.getTime()) {
     slots.push(format(new Date(current)));
-    current.setMinutes(current.getMinutes() + 30);
+    current.setMinutes(current.getMinutes() + 30); // Still increment by 30-minute intervals
   }
 
   return slots;

@@ -1,12 +1,16 @@
 import React from 'react';
 import { Clock, Check, Globe, Shield, Zap } from 'lucide-react';
-import { Service } from '../types';
+import { SelectedServices } from '../types';
 
 interface InfoPanelProps {
-  selectedService: Service | null;
+  selectedServices: SelectedServices;
 }
 
-const InfoPanel: React.FC<InfoPanelProps> = ({ selectedService }) => {
+const InfoPanel: React.FC<InfoPanelProps> = ({ selectedServices }) => {
+  const formatTotalPrice = () => {
+    return selectedServices.totalPrice === 0 ? 'Free' : `$${selectedServices.totalPrice}`;
+  };
+
   return (
     <div className="space-y-8">
       <div>
@@ -22,8 +26,28 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ selectedService }) => {
       <div className="bg-white rounded-2xl p-6 shadow-lg">
         <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
           <Clock className="w-5 h-5 mr-2 text-indigo-600" />
-          {selectedService ? selectedService.name : 'Multiple Services Available'}
+          {selectedServices.services.length > 0 
+            ? `${selectedServices.services.length} Service${selectedServices.services.length > 1 ? 's' : ''} Selected`
+            : 'Multiple Services Available'
+          }
         </h3>
+        
+        {selectedServices.services.length > 0 && (
+          <div className="mb-4 p-3 bg-indigo-50 rounded-lg">
+            <div className="flex justify-between items-center mb-2">
+              <span className="font-semibold text-indigo-900">Total Duration:</span>
+              <span className="text-indigo-700">{selectedServices.totalDuration} min</span>
+            </div>
+            <div className="flex justify-between items-center mb-2">
+              <span className="font-semibold text-indigo-900">Total Price:</span>
+              <span className="text-indigo-700">{formatTotalPrice()}</span>
+            </div>
+            <div className="text-sm text-indigo-600 mt-2">
+              Services: {selectedServices.services.map(s => s.name).join(', ')}
+            </div>
+          </div>
+        )}
+
         <ul className="space-y-3 text-gray-600">
           <li className="flex items-start">
             <Check className="w-5 h-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" />

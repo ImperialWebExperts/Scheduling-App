@@ -1,12 +1,19 @@
 import { useState } from 'react';
-import { Service, BookingFormData, FormErrors, BookingStep } from '../types';
+import { Service, BookingFormData, FormErrors, BookingStep, SelectedServices } from '../types';
 
 export const useBookingState = () => {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [bookingStep, setBookingStep] = useState<BookingStep>('services');
-  const [selectedService, setSelectedService] = useState<Service | null>(null);
+  
+  // Updated to handle multiple services
+  const [selectedServices, setSelectedServices] = useState<SelectedServices>({
+    services: [],
+    totalDuration: 0,
+    totalPrice: 0
+  });
+
   const [formData, setFormData] = useState<BookingFormData>({
     name: '',
     email: '',
@@ -17,9 +24,40 @@ export const useBookingState = () => {
     email: ''
   });
 
+  // Helper function to calculate totals
+  const calculateTotals = (services: Service[]): SelectedServices => {
+    const totalDuration = services.reduce((sum, service) => sum + parseInt(service.durationMin), 0);
+    const totalPrice = services.reduce((sum, service) => sum + parseFloat(service.price), 0);
+    
+    return {
+      services,
+      totalDuration,
+      totalPrice
+    };
+  };
+
+  // Toggle service selection
+  const toggleService = (service: Service) => {
+    const isSelected = selectedServices.services.some(s => s.id === service.id);
+    
+    if (isSelected) {
+      // Remove service
+      const newServices = selectedServices.services.filter(s => s.id !== service.id);
+      setSelectedServices(calculateTotals(newServices));
+    } else {
+      // Add service
+      const newServices = [...selectedServices.services, service];
+      setSelectedServices(calculateTotals(newServices));
+    }
+  };
+
   const resetBooking = () => {
     setBookingStep('services');
-    setSelectedService(null);
+    setSelectedServices({
+      services: [],
+      totalDuration: 0,
+      totalPrice: 0
+    });
     setSelectedDate(null);
     setSelectedTime(null);
     setFormData({ name: '', email: '', message: '' });
@@ -36,8 +74,9 @@ export const useBookingState = () => {
     setCurrentMonth,
     bookingStep,
     setBookingStep,
-    selectedService,
-    setSelectedService,
+    selectedServices,
+    toggleService,
+    setSelectedServices,
     formData,
     setFormData,
     formErrors,

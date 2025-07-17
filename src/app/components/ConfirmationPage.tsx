@@ -1,9 +1,9 @@
 import React from 'react';
 import { Check } from 'lucide-react';
-import { Service, BookingFormData } from '../types';
+import { BookingFormData, SelectedServices } from '../types';
 
 interface ConfirmationPageProps {
-  selectedService: Service | null;
+  selectedServices: SelectedServices;
   selectedDate: Date | null;
   selectedTime: string | null;
   formData: BookingFormData;
@@ -11,7 +11,7 @@ interface ConfirmationPageProps {
 }
 
 const ConfirmationPage: React.FC<ConfirmationPageProps> = ({
-  selectedService,
+  selectedServices,
   selectedDate,
   selectedTime,
   formData,
@@ -27,6 +27,10 @@ const ConfirmationPage: React.FC<ConfirmationPageProps> = ({
     });
   };
 
+  const formatTotalPrice = () => {
+    return selectedServices.totalPrice === 0 ? 'Free' : `$${selectedServices.totalPrice}`;
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50">
       <div className="max-w-2xl mx-auto px-4 py-20">
@@ -34,49 +38,45 @@ const ConfirmationPage: React.FC<ConfirmationPageProps> = ({
           <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
             <Check className="w-8 h-8 text-green-600" />
           </div>
-          <h2 className="text-3xl font-bold text-gray-900 mb-4">Appointment Confirmed!</h2>
+          <h2 className="text-3xl font-bold text-gray-900 mb-4">Booking Confirmed!</h2>
           <p className="text-gray-600 mb-6">Your meeting has been scheduled successfully.</p>
           
           <div className="bg-gray-50 rounded-lg p-6 mb-6">
-            <h3 className="font-semibold text-gray-900 mb-4">Appointment Details</h3>
-            <div className="space-y-3 text-left">
+            <h3 className="font-semibold text-gray-900 mb-4">Meeting Details</h3>
+            <div className="space-y-3 text-sm text-gray-600">
               <div className="flex justify-between">
-                <span className="text-gray-600">Service:</span>
-                <span className="font-semibold text-gray-900">{selectedService?.name}</span>
+                <span><strong>Date:</strong></span>
+                <span>{formatDate(selectedDate)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">Date:</span>
-                <span className="font-semibold text-gray-900">{formatDate(selectedDate)}</span>
+                <span><strong>Time:</strong></span>
+                <span>{selectedTime}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">Time:</span>
-                <span className="font-semibold text-gray-900">{selectedTime}</span>
+                <span><strong>Duration:</strong></span>
+                <span>{selectedServices.totalDuration} minutes</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">Duration:</span>
-                <span className="font-semibold text-gray-900">{selectedService?.durationMin} minutes</span>
+                <span><strong>Total Price:</strong></span>
+                <span>{formatTotalPrice()}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">Attendee:</span>
-                <span className="font-semibold text-gray-900">{formData.name}</span>
+                <span><strong>Attendee:</strong></span>
+                <span>{formData.name}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Email:</span>
-                <span className="font-semibold text-gray-900">{formData.email}</span>
-              </div>
-              {selectedService && Number(selectedService.price) > 0 && (
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Price:</span>
-                  <span className="font-semibold text-gray-900">{selectedService.price}</span>
-                </div>
-              )}
             </div>
-          </div>
-
-          <div className="bg-blue-50 rounded-lg p-4 mb-6">
-            <p className="text-sm text-blue-800">
-              📧 A confirmation email will be sent to {formData.email} shortly with meeting details and next steps.
-            </p>
+            
+            <div className="mt-4 pt-4 border-t border-gray-200">
+              <h4 className="font-medium text-gray-900 mb-2">Services Booked:</h4>
+              <div className="space-y-1">
+                {selectedServices.services.map((service, index) => (
+                  <div key={service.id} className="flex justify-between text-sm text-gray-600">
+                    <span>{index + 1}. {service.name}</span>
+                    <span>{service.durationMin} min</span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
           
           <button 

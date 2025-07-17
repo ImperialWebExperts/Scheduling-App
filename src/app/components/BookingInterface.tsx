@@ -1,5 +1,5 @@
 import React from 'react';
-import { Service, CalendarDay, Availability, Setting, BookingFormData, FormErrors, BookingStep } from '../types';
+import { Service, CalendarDay, Availability, Setting, BookingFormData, FormErrors, BookingStep, SelectedServices } from '../types';
 import ServiceSelection from './ServiceSelection';
 import CalendarSelection from './CalendarSelection';
 import TimeSelection from './TimeSelection';
@@ -8,7 +8,7 @@ import BookingForm from './BookingForm';
 interface BookingInterfaceProps {
   bookingStep: BookingStep;
   services: Service[];
-  selectedService: Service | null;
+  selectedServices: SelectedServices;
   selectedDate: Date | null;
   selectedTime: string | null;
   currentMonth: Date;
@@ -16,9 +16,8 @@ interface BookingInterfaceProps {
   settings: Setting | undefined;
   formData: BookingFormData;
   formErrors: FormErrors;
-  isSubmitting?: boolean;
-  submitError?: string | null;
-  onServiceSelect: (service: Service) => void;
+  onServiceToggle: (service: Service) => void;
+  onServicesContinue: () => void;
   onDateSelect: (day: CalendarDay) => void;
   onTimeSelect: (time: string) => void;
   onMonthChange: (month: Date) => void;
@@ -26,12 +25,14 @@ interface BookingInterfaceProps {
   onFormErrorsChange: (errors: FormErrors) => void;
   onSubmit: () => void;
   onStepChange: (step: BookingStep) => void;
+  isSubmitting?: boolean;
+  submitError?: string | null;
 }
 
 const BookingInterface: React.FC<BookingInterfaceProps> = ({
   bookingStep,
   services,
-  selectedService,
+  selectedServices,
   selectedDate,
   selectedTime,
   currentMonth,
@@ -39,22 +40,18 @@ const BookingInterface: React.FC<BookingInterfaceProps> = ({
   settings,
   formData,
   formErrors,
-  isSubmitting = false,
-  submitError = null,
-  onServiceSelect,
+  onServiceToggle,
+  onServicesContinue,
   onDateSelect,
   onTimeSelect,
   onMonthChange,
   onFormDataChange,
   onFormErrorsChange,
   onSubmit,
-  onStepChange
+  onStepChange,
+  isSubmitting = false,
+  submitError = null
 }) => {
-  const handleServiceSelect = (service: Service) => {
-    onServiceSelect(service);
-    onStepChange('calendar');
-  };
-
   const handleDateSelect = (day: CalendarDay) => {
     if (day.isPast || !day.isCurrentMonth || day.isBeyondLimit || day.isClosed) return;
     onDateSelect(day);
@@ -68,23 +65,18 @@ const BookingInterface: React.FC<BookingInterfaceProps> = ({
 
   return (
     <div className="bg-white rounded-2xl shadow-2xl p-8">
-      {/* Error Message */}
-      {submitError && (
-        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-          <p className="text-red-600 text-sm">{submitError}</p>
-        </div>
-      )}
-
       {bookingStep === 'services' && (
         <ServiceSelection
           services={services}
-          onServiceSelect={handleServiceSelect}
+          selectedServices={selectedServices}
+          onServiceToggle={onServiceToggle}
+          onContinue={onServicesContinue}
         />
       )}
 
       {bookingStep === 'calendar' && (
         <CalendarSelection
-          selectedService={selectedService}
+          selectedServices={selectedServices}
           selectedDate={selectedDate}
           currentMonth={currentMonth}
           availability={availability}
@@ -97,7 +89,7 @@ const BookingInterface: React.FC<BookingInterfaceProps> = ({
 
       {bookingStep === 'times' && (
         <TimeSelection
-          selectedService={selectedService}
+          selectedServices={selectedServices}
           selectedDate={selectedDate}
           availability={availability}
           onTimeSelect={handleTimeSelect}
@@ -107,16 +99,17 @@ const BookingInterface: React.FC<BookingInterfaceProps> = ({
 
       {bookingStep === 'form' && (
         <BookingForm
-          selectedService={selectedService}
+          selectedServices={selectedServices}
           selectedDate={selectedDate}
           selectedTime={selectedTime}
           formData={formData}
           formErrors={formErrors}
-          isSubmitting={isSubmitting}
           onFormDataChange={onFormDataChange}
           onFormErrorsChange={onFormErrorsChange}
           onSubmit={onSubmit}
           onBack={() => onStepChange('times')}
+          isSubmitting={isSubmitting}
+          submitError={submitError}
         />
       )}
     </div>
