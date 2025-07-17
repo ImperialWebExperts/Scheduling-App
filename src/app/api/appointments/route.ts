@@ -40,12 +40,6 @@ export async function POST(request: NextRequest) {
     
     // Create date object and set the time explicitly
     const appointmentDate = new Date(`${date}T${time}Z`);
-    
-    // Log for debugging
-    console.log('Input date:', date);
-    console.log('Input time:', time);
-    console.log('Created appointmentDate:', appointmentDate);
-    console.log('Appointment date ISO:', appointmentDate.toISOString());
 
     // Create the appointment with associated services
     const appointment = await prisma.appointment.create({

@@ -42,7 +42,7 @@ const ConfirmationPage: React.FC<ConfirmationPageProps> = ({
             <div className="space-y-2 text-sm text-gray-600">
               <p><strong>Services:</strong> {selectedServices.services.length} service{selectedServices.services.length !== 1 ? 's' : ''}</p>
               <div className="ml-4 space-y-1">
-                {selectedServices.services.map((service, index) => (
+                {selectedServices.services.map((service) => (
                   <p key={service.id} className="text-xs">
                     • {service.name} ({service.durationMin} min{Number(service.price) > 0 ? `, $${service.price}` : ', Free'})
                   </p>
