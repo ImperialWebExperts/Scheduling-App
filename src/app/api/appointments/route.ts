@@ -1,4 +1,4 @@
-// src/app/api/appointments/route.ts
+// src/app/api/bookings/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/prisma';
 
@@ -11,7 +11,8 @@ export async function POST(request: NextRequest) {
       time, 
       clientName, 
       clientEmail, 
-      notes 
+      clientPhone = '', // Default to empty string if not provided
+      notes = '' 
     } = body;
 
     // Validate required fields
@@ -22,7 +23,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get service details to determine duration
+    // Combine date and time into a single DateTime
+    const appointmentDateTime = new Date(`${date}T${time}`);
+
+    // Get service details to extract duration
     const service = await prisma.service.findUnique({
       where: { id: serviceId }
     });
@@ -34,45 +38,37 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Parse the date and time to create a DateTime
-    const appointmentDate = new Date(date);
-    const [timeStr, period] = time.split(' ');
-    const [hours, minutes] = timeStr.split(':').map(Number);
-    
-    let hour24 = hours;
-    if (period === 'PM' && hours !== 12) hour24 += 12;
-    if (period === 'AM' && hours === 12) hour24 = 0;
-    
-    appointmentDate.setHours(hour24, minutes, 0, 0);
-
     // Create the appointment
     const appointment = await prisma.appointment.create({
       data: {
-        date: appointmentDate,
+        date: appointmentDateTime,
         durationMin: service.durationMin,
         clientName,
         clientEmail,
-        clientPhone: '', // You might want to add phone field to your form
-        notes: notes || '',
-        businessId: service.businessId,
-        serviceId: service.id,
+        clientPhone,
+        notes,
+        businessId: 'iwe', // Your business ID
+        serviceId,
         status: 'SCHEDULED'
       },
       include: {
-        service: true,
-        business: true
+        service: true
       }
     });
 
-    return NextResponse.json({ 
-      success: true, 
-      appointment 
-    });
+    return NextResponse.json(
+      { 
+        success: true, 
+        appointment,
+        message: 'Booking created successfully' 
+      }, 
+      { status: 201 }
+    );
 
   } catch (error) {
-    console.error('Failed to create appointment:', error);
+    console.error('Failed to create booking:', error);
     return NextResponse.json(
-      { error: 'Failed to create appointment' }, 
+      { error: 'Failed to create booking' }, 
       { status: 500 }
     );
   }

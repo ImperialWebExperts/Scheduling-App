@@ -1,5 +1,5 @@
 'use client';
-import React, { useState } from 'react';
+import React from 'react';
 import { useSchedulingData } from './hooks/useSchedulingData';
 import { useBookingState } from './hooks/useBookingState';
 import InfoPanel from './components/InfoPanel';
@@ -8,9 +8,6 @@ import ConfirmationPage from './components/ConfirmationPage';
 import { CalendarDay } from './types';
 
 const SchedulingApp = () => {
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
-
   const {
     services,
     serviceLoading,
@@ -43,43 +40,57 @@ const SchedulingApp = () => {
   };
 
   const handleSubmit = async () => {
-    if (!selectedService || !selectedDate || !selectedTime) {
-      setSubmitError('Missing required booking information');
-      return;
-    }
-
-    setIsSubmitting(true);
-    setSubmitError(null);
-
     try {
-      const response = await fetch('/api/appointments', {
+      // Validate required data
+      if (!selectedService || !selectedDate || !selectedTime || !formData.name || !formData.email) {
+        console.error('Missing required booking data');
+        return;
+      }
+
+      // Convert time to 24-hour format for database
+      const convertTo24Hour = (time12h: string): string => {
+        const [time, modifier] = time12h.split(' ');
+        let [hours, minutes] = time.split(':');
+        if (hours === '12') {
+          hours = '00';
+        }
+        if (modifier === 'PM') {
+          hours = (parseInt(hours, 10) + 12).toString();
+        }
+        return `${hours.padStart(2, '0')}:${minutes}:00`;
+      };
+
+      const bookingData = {
+        serviceId: selectedService.id,
+        date: selectedDate.toISOString().split('T')[0], // YYYY-MM-DD format
+        time: convertTo24Hour(selectedTime),
+        clientName: formData.name,
+        clientEmail: formData.email,
+        clientPhone: '', // Add phone field to form if needed
+        notes: formData.message
+      };
+
+      const response = await fetch('/api/bookings', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          serviceId: selectedService.id,
-          date: selectedDate.toISOString().split('T')[0], // YYYY-MM-DD format
-          time: selectedTime,
-          clientName: formData.name,
-          clientEmail: formData.email,
-          notes: formData.message,
-        }),
+        body: JSON.stringify(bookingData),
       });
 
       const result = await response.json();
 
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to create appointment');
+      if (response.ok) {
+        console.log('Booking created successfully:', result);
+        setBookingStep('confirmation');
+      } else {
+        console.error('Failed to create booking:', result.error);
+        // You might want to show an error message to the user here
+        alert('Failed to create booking. Please try again.');
       }
-
-      // Success! Move to confirmation page
-      setBookingStep('confirmation');
     } catch (error) {
-      console.error('Booking submission error:', error);
-      setSubmitError(error instanceof Error ? error.message : 'Failed to create appointment');
-    } finally {
-      setIsSubmitting(false);
+      console.error('Error submitting booking:', error);
+      alert('An error occurred. Please try again.');
     }
   };
 
@@ -87,7 +98,7 @@ const SchedulingApp = () => {
   if (bookingStep === 'confirmation') {
     return (
       <ConfirmationPage
-        selectedService={selectedService}
+        selectedService={selectedService} // Add this line
         selectedDate={selectedDate}
         selectedTime={selectedTime}
         formData={formData}
@@ -127,8 +138,6 @@ const SchedulingApp = () => {
             settings={settings}
             formData={formData}
             formErrors={formErrors}
-            isSubmitting={isSubmitting}
-            submitError={submitError}
             onServiceSelect={setSelectedService}
             onDateSelect={handleDateSelect}
             onTimeSelect={setSelectedTime}
