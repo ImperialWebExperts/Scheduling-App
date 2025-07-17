@@ -1,5 +1,5 @@
 import React from 'react';
-import { Service, CalendarDay, Availability, Setting, BookingFormData, FormErrors, BookingStep, SelectedServices } from '../types';
+import { Service, CalendarDay, Availability, Setting, BookingFormData, FormErrors, BookingStep } from '../types';
 import ServiceSelection from './ServiceSelection';
 import CalendarSelection from './CalendarSelection';
 import TimeSelection from './TimeSelection';
@@ -8,7 +8,7 @@ import BookingForm from './BookingForm';
 interface BookingInterfaceProps {
   bookingStep: BookingStep;
   services: Service[];
-  selectedServices: SelectedServices;
+  selectedService: Service | null;  // Fixed: changed from selectedServices to selectedService
   selectedDate: Date | null;
   selectedTime: string | null;
   currentMonth: Date;
@@ -16,8 +16,7 @@ interface BookingInterfaceProps {
   settings: Setting | undefined;
   formData: BookingFormData;
   formErrors: FormErrors;
-  onServiceToggle: (service: Service) => void;
-  onServicesContinue: () => void;
+  onServiceSelect: (service: Service) => void;
   onDateSelect: (day: CalendarDay) => void;
   onTimeSelect: (time: string) => void;
   onMonthChange: (month: Date) => void;
@@ -25,14 +24,12 @@ interface BookingInterfaceProps {
   onFormErrorsChange: (errors: FormErrors) => void;
   onSubmit: () => void;
   onStepChange: (step: BookingStep) => void;
-  isSubmitting?: boolean;
-  submitError?: string | null;
 }
 
 const BookingInterface: React.FC<BookingInterfaceProps> = ({
   bookingStep,
   services,
-  selectedServices,
+  selectedService,
   selectedDate,
   selectedTime,
   currentMonth,
@@ -40,18 +37,20 @@ const BookingInterface: React.FC<BookingInterfaceProps> = ({
   settings,
   formData,
   formErrors,
-  onServiceToggle,
-  onServicesContinue,
+  onServiceSelect,
   onDateSelect,
   onTimeSelect,
   onMonthChange,
   onFormDataChange,
   onFormErrorsChange,
   onSubmit,
-  onStepChange,
-  isSubmitting = false,
-  submitError = null
+  onStepChange
 }) => {
+  const handleServiceSelect = (service: Service) => {
+    onServiceSelect(service);
+    onStepChange('calendar');
+  };
+
   const handleDateSelect = (day: CalendarDay) => {
     if (day.isPast || !day.isCurrentMonth || day.isBeyondLimit || day.isClosed) return;
     onDateSelect(day);
@@ -68,15 +67,13 @@ const BookingInterface: React.FC<BookingInterfaceProps> = ({
       {bookingStep === 'services' && (
         <ServiceSelection
           services={services}
-          selectedServices={selectedServices}
-          onServiceToggle={onServiceToggle}
-          onContinue={onServicesContinue}
+          onServiceSelect={handleServiceSelect}
         />
       )}
 
       {bookingStep === 'calendar' && (
         <CalendarSelection
-          selectedServices={selectedServices}
+          selectedService={selectedService}
           selectedDate={selectedDate}
           currentMonth={currentMonth}
           availability={availability}
@@ -89,7 +86,7 @@ const BookingInterface: React.FC<BookingInterfaceProps> = ({
 
       {bookingStep === 'times' && (
         <TimeSelection
-          selectedServices={selectedServices}
+          selectedService={selectedService}
           selectedDate={selectedDate}
           availability={availability}
           onTimeSelect={handleTimeSelect}
@@ -99,7 +96,7 @@ const BookingInterface: React.FC<BookingInterfaceProps> = ({
 
       {bookingStep === 'form' && (
         <BookingForm
-          selectedServices={selectedServices}
+          selectedService={selectedService}
           selectedDate={selectedDate}
           selectedTime={selectedTime}
           formData={formData}
@@ -108,8 +105,6 @@ const BookingInterface: React.FC<BookingInterfaceProps> = ({
           onFormErrorsChange={onFormErrorsChange}
           onSubmit={onSubmit}
           onBack={() => onStepChange('times')}
-          isSubmitting={isSubmitting}
-          submitError={submitError}
         />
       )}
     </div>
