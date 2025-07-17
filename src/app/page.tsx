@@ -45,31 +45,22 @@ const SchedulingApp = () => {
 
   const { submitBooking, isSubmitting, submitError } = useBookingSubmission();
 
-  const handleDateSelect = (day: CalendarDay) => {
-    console.log('handleDateSelect called with:', day); // Debug log
-    setSelectedDate(day.date);
-    // Automatically move to time selection after date is selected
-    setBookingStep('times');
-  };
-
   const handleServiceToggle = (service: Service) => {
-    const currentServices = selectedServices.services;
-    const isSelected = currentServices.some(s => s.id === service.id);
+    const isSelected = selectedServices.services.some(s => s.id === service.id);
     
     if (isSelected) {
       // Remove service
-      const newServices = currentServices.filter(s => s.id !== service.id);
-      setSelectedServices(newServices);
+      const updatedServices = selectedServices.services.filter(s => s.id !== service.id);
+      setSelectedServices(updatedServices);
     } else {
       // Add service
-      setSelectedServices([...currentServices, service]);
+      const updatedServices = [...selectedServices.services, service];
+      setSelectedServices(updatedServices);
     }
   };
 
-  const handleContinueFromServices = () => {
-    if (selectedServices.services.length > 0) {
-      setBookingStep('calendar');
-    }
+  const handleDateSelect = (day: CalendarDay) => {
+    setSelectedDate(day.date);
   };
 
   const handleSubmit = async () => {
@@ -116,23 +107,22 @@ const SchedulingApp = () => {
 
           {/* Right Column - Booking Interface */}
           <div className="bg-white rounded-2xl shadow-2xl p-8">
-            {/* Service Selection Step */}
             {bookingStep === 'services' && (
               <ServiceSelection
                 services={services}
                 selectedServices={selectedServices.services}
                 onServiceToggle={handleServiceToggle}
-                onContinue={handleContinueFromServices}
+                onContinue={() => setBookingStep('calendar')}
               />
             )}
 
-            {/* Calendar Selection Step */}
             {bookingStep === 'calendar' && (
               <CalendarSelection
                 selectedServices={selectedServices}
                 selectedDate={selectedDate}
                 currentMonth={currentMonth}
                 availability={availability}
+                existingAppointments={appointments}
                 settings={settings}
                 onDateSelect={handleDateSelect}
                 onMonthChange={setCurrentMonth}
@@ -140,24 +130,20 @@ const SchedulingApp = () => {
               />
             )}
 
-            {/* Time Selection Step */}
             {bookingStep === 'times' && (
               <TimeSelection
                 selectedServices={selectedServices}
                 selectedDate={selectedDate}
                 availability={availability}
                 existingAppointments={appointments}
-                settings={settings}
                 onTimeSelect={(time) => {
-                  console.log('Time selected:', time); // Debug log
                   setSelectedTime(time);
-                  setBookingStep('form'); // Advance to form step
+                  setBookingStep('form');
                 }}
                 onBack={() => setBookingStep('calendar')}
               />
             )}
 
-            {/* Booking Form Step */}
             {bookingStep === 'form' && (
               <BookingForm
                 selectedServices={selectedServices}
@@ -172,19 +158,19 @@ const SchedulingApp = () => {
               />
             )}
 
-            {/* Show submission error if exists */}
+            {/* Show submission error if any */}
             {submitError && (
               <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-                <p className="text-sm text-red-800">{submitError}</p>
+                <p className="text-sm text-red-600">{submitError}</p>
               </div>
             )}
 
             {/* Show loading state during submission */}
             {isSubmitting && (
-              <div className="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center rounded-2xl">
-                <div className="text-center">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-2"></div>
-                  <p className="text-gray-600">Creating your appointment...</p>
+              <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-center space-x-2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                  <p className="text-sm text-blue-600">Submitting your booking...</p>
                 </div>
               </div>
             )}

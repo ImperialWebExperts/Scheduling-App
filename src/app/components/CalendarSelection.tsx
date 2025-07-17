@@ -1,11 +1,13 @@
 import React from 'react';
-import { CalendarDay, Availability, Setting, SelectedServices } from '../types';
+import { CalendarDay, Availability, Setting, SelectedServices, Appointment } from '../types';
+import generateTimeSlots from '../lib/generateTimeSlots';
 
 interface CalendarSelectionProps {
   selectedServices: SelectedServices;
   selectedDate: Date | null;
   currentMonth: Date;
   availability: Availability[];
+  existingAppointments: Appointment[];
   settings: Setting | undefined;
   onDateSelect: (day: CalendarDay) => void;
   onMonthChange: (month: Date) => void;
@@ -17,6 +19,7 @@ const CalendarSelection: React.FC<CalendarSelectionProps> = ({
   selectedDate,
   currentMonth,
   availability,
+  existingAppointments,
   settings,
   onDateSelect,
   onMonthChange,
@@ -39,6 +42,31 @@ const CalendarSelection: React.FC<CalendarSelectionProps> = ({
     return month > maxDate;
   };
 
+  // Function to get available time slots for a specific date
+  const getAvailableTimesForDate = (date: Date): number => {
+    if (selectedServices.services.length === 0) return 0;
+
+    const totalDuration = selectedServices.totalDuration;
+    
+    const slots = availability
+      .filter(a => a.dayOfWeek === date.getDay())
+      .filter(a => a.startTime !== 'Close')
+      .flatMap(({ startTime, endTime }) => 
+        generateTimeSlots(startTime, endTime, totalDuration, date, existingAppointments)
+      );
+    
+    return slots.length;
+  };
+
+  // Function to determine availability status for calendar styling
+  const getAvailabilityStatus = (date: Date) => {
+    const availableSlots = getAvailableTimesForDate(date);
+    
+    if (availableSlots === 0) return 'unavailable';
+    if (availableSlots <= 2) return 'limited';
+    return 'available';
+  };
+
   const generateCalendar = () => {
     const year = currentMonth.getFullYear();
     const month = currentMonth.getMonth();
@@ -53,7 +81,7 @@ const CalendarSelection: React.FC<CalendarSelectionProps> = ({
     const maxDate = getMaxDate();
 
     const closedDayNumbers = availability
-      .filter(a => a.startTime === 'Close' || a.startTime === 'close' || a.startTime === 'closed' || a.startTime === 'Closed')
+      .filter(a => a.startTime === 'Close')
       .map(a => a.dayOfWeek);
 
     for (let i = 0; i < 42; i++) {
@@ -62,6 +90,11 @@ const CalendarSelection: React.FC<CalendarSelectionProps> = ({
       const isToday = currentDate.toDateString() === today.toDateString();
       const isPast = currentDate.getTime() < today.getTime();
       const isBeyondLimit = currentDate > maxDate;
+      
+      // Get availability status for styling
+      const availabilityStatus = isCurrentMonth && !isPast && !isBeyondLimit && !isClosed 
+        ? getAvailabilityStatus(new Date(currentDate))
+        : null;
 
       days.push({
         date: new Date(currentDate),
@@ -70,7 +103,8 @@ const CalendarSelection: React.FC<CalendarSelectionProps> = ({
         isPast,
         isBeyondLimit,
         isClosed,
-        dayNumber: currentDate.getDate()
+        dayNumber: currentDate.getDate(),
+        availabilityStatus
       });
 
       currentDate.setDate(currentDate.getDate() + 1);
@@ -90,30 +124,55 @@ const CalendarSelection: React.FC<CalendarSelectionProps> = ({
     return prevMonth.getMonth() >= today.getMonth() && prevMonth.getFullYear() >= today.getFullYear();
   };
 
-  const handleDateClick = (day: CalendarDay) => {
-    console.log('Date clicked:', day); // Debug log
+  const days = generateCalendar();
+
+  const getDateButtonStyles = (day: any) => {
+    const baseClasses = "aspect-square p-2 text-sm rounded-lg transition-all duration-200 relative";
     
-    // Check if the day is clickable
-    if (day.isPast || !day.isCurrentMonth || day.isBeyondLimit || day.isClosed) {
-      console.log('Date not clickable:', { 
-        isPast: day.isPast, 
-        isCurrentMonth: day.isCurrentMonth, 
-        isBeyondLimit: day.isBeyondLimit, 
-        isClosed: day.isClosed 
-      });
-      return;
+    if (day.isClosed) {
+      return `${baseClasses} bg-red-50 text-red-300 cursor-not-allowed`;
     }
     
-    console.log('Calling onDateSelect with:', day);
-    onDateSelect(day);
+    if (day.isToday) {
+      return `${baseClasses} bg-indigo-600 text-white hover:bg-indigo-700`;
+    }
+    
+    if (selectedDate?.toDateString() === day.date.toDateString()) {
+      return `${baseClasses} bg-indigo-100 text-indigo-600 ring-2 ring-indigo-500`;
+    }
+    
+    if (!day.isCurrentMonth || day.isPast || day.isBeyondLimit) {
+      return `${baseClasses} text-gray-300 cursor-not-allowed`;
+    }
+    
+    // Apply availability-based styling
+    switch (day.availabilityStatus) {
+      case 'unavailable':
+        return `${baseClasses} text-gray-400 bg-gray-100 cursor-not-allowed`;
+      case 'limited':
+        return `${baseClasses} text-orange-600 hover:bg-orange-50 hover:text-orange-700 bg-orange-50`;
+      case 'available':
+        return `${baseClasses} text-gray-900 hover:bg-indigo-50 hover:text-indigo-600`;
+      default:
+        return `${baseClasses} text-gray-900 hover:bg-indigo-50 hover:text-indigo-600`;
+    }
   };
 
-  const isDateSelected = (day: CalendarDay) => {
-    if (!selectedDate) return false;
-    return selectedDate.toDateString() === day.date.toDateString();
-  };
+  const getAvailabilityIndicator = (day: any) => {
+    if (!day.isCurrentMonth || day.isPast || day.isBeyondLimit || day.isClosed) {
+      return null;
+    }
 
-  const days = generateCalendar();
+    const availableSlots = getAvailableTimesForDate(day.date);
+    
+    if (availableSlots === 0) {
+      return <div className="absolute bottom-0 right-0 w-2 h-2 bg-red-400 rounded-full"></div>;
+    } else if (availableSlots <= 2) {
+      return <div className="absolute bottom-0 right-0 w-2 h-2 bg-orange-400 rounded-full"></div>;
+    } else {
+      return <div className="absolute bottom-0 right-0 w-2 h-2 bg-green-400 rounded-full"></div>;
+    }
+  };
 
   return (
     <div>
@@ -181,6 +240,22 @@ const CalendarSelection: React.FC<CalendarSelectionProps> = ({
         </div>
       </div>
 
+      {/* Legend */}
+      <div className="flex items-center space-x-4 mb-4 text-xs">
+        <div className="flex items-center space-x-1">
+          <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+          <span className="text-gray-600">Available</span>
+        </div>
+        <div className="flex items-center space-x-1">
+          <div className="w-2 h-2 bg-orange-400 rounded-full"></div>
+          <span className="text-gray-600">Limited</span>
+        </div>
+        <div className="flex items-center space-x-1">
+          <div className="w-2 h-2 bg-red-400 rounded-full"></div>
+          <span className="text-gray-600">Fully booked</span>
+        </div>
+      </div>
+
       <div className="grid grid-cols-7 gap-1 mb-4">
         {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
           <div key={day} className="text-center text-sm font-medium text-gray-500 py-2">
@@ -190,30 +265,17 @@ const CalendarSelection: React.FC<CalendarSelectionProps> = ({
       </div>
 
       <div className="grid grid-cols-7 gap-1">
-        {days.map((day, index) => {
-          const isSelected = isDateSelected(day);
-          const isClickable = day.isCurrentMonth && !day.isPast && !day.isBeyondLimit && !day.isClosed;
-          
-          return (
-            <button
-              key={index}
-              onClick={() => handleDateClick(day)}
-              disabled={!isClickable}
-              className={`
-                aspect-square p-2 text-sm rounded-lg transition-all duration-200 font-medium
-                ${day.isClosed ? 'bg-red-50 text-red-300 cursor-not-allowed line-through' : ''}
-                ${day.isToday && isClickable ? 'bg-indigo-600 text-white hover:bg-indigo-700' : ''}
-                ${isSelected && !day.isToday ? 'bg-indigo-500 text-white' : ''}
-                ${!day.isCurrentMonth ? 'text-gray-300 cursor-not-allowed' : ''}
-                ${day.isPast && day.isCurrentMonth ? 'text-gray-400 cursor-not-allowed' : ''}
-                ${day.isBeyondLimit && day.isCurrentMonth ? 'text-gray-300 cursor-not-allowed opacity-50' : ''}
-                ${isClickable && !isSelected && !day.isToday ? 'text-gray-900 hover:bg-indigo-50 hover:text-indigo-600 cursor-pointer' : ''}
-              `}
-            >
-              {day.dayNumber}
-            </button>
-          );
-        })}
+        {days.map((day, index) => (
+          <button
+            key={index}
+            onClick={() => onDateSelect(day)}
+            disabled={day.isPast || !day.isCurrentMonth || day.isBeyondLimit || day.isClosed || day.availabilityStatus === 'unavailable'}
+            className={getDateButtonStyles(day)}
+          >
+            {day.dayNumber}
+            {getAvailabilityIndicator(day)}
+          </button>
+        ))}
       </div>
 
       {isMonthBeyondLimit(currentMonth) && (
@@ -221,14 +283,6 @@ const CalendarSelection: React.FC<CalendarSelectionProps> = ({
           <p className="text-sm text-amber-800">
             📅 Appointments are only available up to {settings?.maxAdvanceDays || 3} months in advance. Please select an earlier date.
           </p>
-        </div>
-      )}
-      
-      {/* Debug info - remove this in production */}
-      {process.env.NODE_ENV === 'development' && (
-        <div className="mt-4 p-2 bg-gray-100 rounded text-xs">
-          <p>Selected date: {selectedDate?.toDateString() || 'None'}</p>
-          <p>Available days this week: {availability.filter(a => a.startTime !== 'Close').length}</p>
         </div>
       )}
     </div>
