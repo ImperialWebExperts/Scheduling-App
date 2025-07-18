@@ -2,7 +2,7 @@
 import React from 'react';
 import { SelectedServices, Availability, Appointment } from '../types';
 import generateTimeSlots, { TimeSlot } from '../lib/generateTimeSlots';
-import { Clock, User } from 'lucide-react';
+import { Clock } from 'lucide-react';
 
 interface TimeSelectionProps {
   selectedServices: SelectedServices;
@@ -46,7 +46,6 @@ const TimeSelection: React.FC<TimeSelectionProps> = ({
 
   const timeSlots = getTimeSlots();
   const availableSlots = timeSlots.filter(slot => slot.available);
-  const takenSlots = timeSlots.filter(slot => !slot.available);
 
   return (
     <div>
@@ -107,40 +106,6 @@ const TimeSelection: React.FC<TimeSelectionProps> = ({
               </div>
             </div>
           )}
-
-          {/* Taken Time Slots */}
-          {/* {takenSlots.length > 0 && (
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center">
-                <User className="w-4 h-4 mr-2 text-red-600" />
-                Unavailable Times ({takenSlots.length})
-              </h3>
-              <div className="grid grid-cols-1 gap-2">
-                {takenSlots.map(slot => (
-                  <div
-                    key={slot.time}
-                    className="p-3 border border-red-200 rounded-lg bg-red-50 cursor-not-allowed"
-                  >
-                    <div className="flex justify-between items-center">
-                      <span className="text-red-700 font-medium">{slot.time}</span>
-                      <span className="text-xs text-red-600">
-                        {slot.conflictingAppointment ? 'Booked' : 'Unavailable'}
-                      </span>
-                    </div>
-                    {slot.conflictingAppointment && (
-                      <div className="mt-1 text-xs text-red-600">
-                        <p>Client: {slot.conflictingAppointment.clientName}</p>
-                        <p>Duration: {slot.conflictingAppointment.duration} min</p>
-                        {slot.conflictingAppointment.services.length > 0 && (
-                          <p>Services: {slot.conflictingAppointment.services.join(', ')}</p>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )} */}
 
           {/* No available slots message */}
           {availableSlots.length === 0 && (
