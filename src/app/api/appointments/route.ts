@@ -139,6 +139,8 @@ function isDaylightSavingTime(date: Date): boolean {
 
 // Helper function to parse time string to hours and minutes
 function parseTime(timeStr: string): [number, number] {
+  console.log(`Parsing time: "${timeStr}"`);
+  
   // Handle both "HH:MM:SS" and "H:MM AM/PM" formats
   if (timeStr.includes('AM') || timeStr.includes('PM')) {
     const [time, period] = timeStr.split(' ');
@@ -146,14 +148,25 @@ function parseTime(timeStr: string): [number, number] {
     let hours = parseInt(hourStr);
     const minutes = parseInt(minuteStr);
     
-    if (period === 'PM' && hours !== 12) hours += 12;
-    if (period === 'AM' && hours === 12) hours = 0;
+    console.log(`  Parsed: ${hours}:${minutes} ${period}`);
     
+    // 12-hour to 24-hour conversion
+    if (period === 'PM' && hours !== 12) {
+      hours += 12;
+    } else if (period === 'AM' && hours === 12) {
+      hours = 0;
+    }
+    // Note: 12 PM stays as 12 (noon), 12 AM becomes 0 (midnight)
+    
+    console.log(`  24-hour format: ${hours}:${minutes}`);
     return [hours, minutes];
   } else {
     // 24-hour format (e.g., "09:00:00")
     const [hourStr, minuteStr] = timeStr.split(':');
-    return [parseInt(hourStr), parseInt(minuteStr)];
+    const hours = parseInt(hourStr);
+    const minutes = parseInt(minuteStr);
+    console.log(`  24-hour input: ${hours}:${minutes}`);
+    return [hours, minutes];
   }
 }
 
