@@ -83,17 +83,6 @@ const TimeSelection: React.FC<TimeSelectionProps> = ({
           )}
         </div>
 
-        {/* Legend */}
-        <div className="flex items-center gap-4 mb-4 text-sm">
-          <div className="flex items-center gap-1">
-            <div className="w-3 h-3 bg-indigo-600 rounded"></div>
-            <span className="text-gray-600">Available</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <div className="w-3 h-3 bg-red-100 border border-red-300 rounded"></div>
-            <span className="text-gray-600">Taken</span>
-          </div>
-        </div>
       </div>
       
       {timeSlots.length > 0 ? (
@@ -120,7 +109,7 @@ const TimeSelection: React.FC<TimeSelectionProps> = ({
           )}
 
           {/* Taken Time Slots */}
-          {takenSlots.length > 0 && (
+          {/* {takenSlots.length > 0 && (
             <div>
               <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center">
                 <User className="w-4 h-4 mr-2 text-red-600" />
@@ -151,7 +140,7 @@ const TimeSelection: React.FC<TimeSelectionProps> = ({
                 ))}
               </div>
             </div>
-          )}
+          )} */}
 
           {/* No available slots message */}
           {availableSlots.length === 0 && (

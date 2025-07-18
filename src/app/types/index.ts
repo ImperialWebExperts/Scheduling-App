@@ -83,4 +83,6 @@ export interface AppointmentResponse {
   services: AppointmentService[];
 }
 
+
+
 export type BookingStep = 'services' | 'calendar' | 'times' | 'form' | 'confirmation';
